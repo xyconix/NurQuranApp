@@ -11,71 +11,59 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
+// Constants
+const ACTIVE_COLOR = "#A44AFF";
+const INACTIVE_COLOR = "#8D92A3";
+const BACKGROUND_COLOR = "#0B1535";
+const PADDING_VERTICAL = 16;
+
+// Types
+type TabKey = "home" | "qiblat" | "prayer" | "fasting" | "tasbih" | "bookmark";
 type TabNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface BottomTabBarProps {
-  active: "home" | "qiblat" | "prayer" | "fasting" | "tasbih" | "bookmark";
+  active: TabKey;
 }
+
+interface TabItem {
+  key: TabKey;
+  label: string;
+  icon: React.ComponentType<{
+    size: number;
+    color: string;
+    strokeWidth: number;
+  }>;
+  screen: keyof RootStackParamList;
+}
+
+// Tab configuration
+const TABS: TabItem[] = [
+  { key: "home", label: "Home", icon: Book, screen: "HomeScreen" },
+  { key: "qiblat", label: "Qiblat", icon: Compass, screen: "QiblatScreen" },
+  { key: "prayer", label: "Prayer", icon: Clock, screen: "PrayerTimesScreen" },
+  { key: "fasting", label: "Fasting", icon: Calendar, screen: "FastingScreen" },
+  { key: "tasbih", label: "Tasbih", icon: Disc, screen: "TasbihScreen" },
+  {
+    key: "bookmark",
+    label: "Bookmark",
+    icon: Bookmark,
+    screen: "BookmarkScreen",
+  },
+];
 
 const BottomTabBar = ({ active }: BottomTabBarProps) => {
   const navigation = useNavigation<TabNavigationProp>();
 
-  const handleTabPress = (tabKey: string) => {
-    switch (tabKey) {
-      case "home":
-        navigation.navigate("HomeScreen");
-        break;
-      case "qiblat":
-        navigation.navigate("QiblatScreen");
-        break;
-      case "prayer":
-        navigation.navigate("PrayerTimesScreen");
-        break;
-      case "fasting":
-        navigation.navigate("FastingScreen");
-        break;
-      case "tasbih":
-        navigation.navigate("TasbihScreen");
-        break;
-      case "bookmark":
-        navigation.navigate("BookmarkScreen");
-        break;
+  const handleTabPress = (tabKey: TabKey) => {
+    const tab = TABS.find((t) => t.key === tabKey);
+    if (tab) {
+      navigation.navigate(tab.screen as never);
     }
   };
 
-  const tabs = [
-    { key: "home", label: "Home", icon: Book },
-    { key: "qiblat", label: "Qiblat", icon: Compass },
-    { key: "prayer", label: "Prayer", icon: Clock },
-    { key: "fasting", label: "Fasting", icon: Calendar },
-    { key: "tasbih", label: "Tasbih", icon: Disc },
-    { key: "bookmark", label: "Bookmark", icon: Bookmark },
-  ] as const;
-
-  const styles = StyleSheet.create({
-    container: {
-      position: "absolute",
-      bottom: 0,
-      width: "100%",
-      backgroundColor: "#0B1535",
-      flexDirection: "row",
-      justifyContent: "space-around",
-      paddingVertical: 16,
-    },
-    tabItem: {
-      alignItems: "center",
-    },
-    activeTabText: {
-      fontSize: 10,
-      marginTop: 1,
-      fontWeight: "bold",
-      color: "#A44AFF",
-    },
-  });
-
   return (
     <View style={styles.container}>
-      {tabs.map((tab) => {
+      {TABS.map((tab) => {
         const isActive = active === tab.key;
         const Icon = tab.icon;
 
@@ -87,7 +75,7 @@ const BottomTabBar = ({ active }: BottomTabBarProps) => {
           >
             <Icon
               size={26}
-              color={isActive ? "#A44AFF" : "#8D92A3"}
+              color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR}
               strokeWidth={isActive ? 3 : 2}
             />
 
@@ -98,5 +86,26 @@ const BottomTabBar = ({ active }: BottomTabBarProps) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    backgroundColor: BACKGROUND_COLOR,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: PADDING_VERTICAL,
+  },
+  tabItem: {
+    alignItems: "center",
+  },
+  activeTabText: {
+    fontSize: 10,
+    marginTop: 1,
+    fontWeight: "bold",
+    color: ACTIVE_COLOR,
+  },
+});
 
 export default BottomTabBar;

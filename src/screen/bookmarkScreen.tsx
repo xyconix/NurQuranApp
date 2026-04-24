@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -11,18 +11,39 @@ import {
 import {
   Folder,
   PlusSquare,
-  MoreVertical,
   ListFilter,
   Bookmark,
   Pin,
-  Trash2,
   ChevronRight,
-  Edit,
 } from "lucide-react-native";
 import { useQuranStore } from "../store/useAppStore";
 import { useNavigation } from "@react-navigation/native";
 import Header from "./component/Header";
 import BottomTabBar from "../components/MainTabNavigator";
+
+// Constants
+const PRIMARY_COLOR = "#A44AFF";
+const SECONDARY_COLOR = "#8D92A3";
+const TEXT_COLOR = "white";
+const BACKGROUND_COLOR = "#0B1535";
+const ITEM_BACKGROUND_COLOR = "rgba(26, 40, 68, 0.4)";
+const BORDER_COLOR = "rgba(42, 58, 90, 0.6)";
+const PIN_COLOR = "#FFD700";
+
+// Types
+type Collection = {
+  id: string;
+  name: string;
+  isPinned: boolean;
+  items?: any[];
+};
+
+type BookmarkItem = {
+  surahId: number;
+  nomorAyat: number;
+  surahName: string;
+  ayahText: string;
+};
 
 const BookmarkScreen = () => {
   const navigation = useNavigation<any>();
@@ -39,6 +60,7 @@ const BookmarkScreen = () => {
   const pinnedCollections = collections.filter((c) => c.isPinned);
   const unpinnedCollections = collections.filter((c) => !c.isPinned);
 
+  // Collection handlers
   const handleAddCollection = () => {
     Alert.prompt(
       "Create Collection",
@@ -54,7 +76,8 @@ const BookmarkScreen = () => {
       "default",
     );
   };
-  const handleLongPressCollection = (item: any) => {
+
+  const handleLongPressCollection = (item: Collection) => {
     Alert.alert("Kelola Koleksi", item.name, [
       {
         text: item.isPinned ? "Lepas Pin" : "Pin Koleksi",
@@ -126,11 +149,8 @@ const BookmarkScreen = () => {
     ]);
   };
 
-  const sortedCollections = [...collections].sort(
-    (a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0),
-  );
-
-  const renderBookmarkItem = ({ item }: { item: any }) => (
+  // Render functions
+  const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
     <TouchableOpacity
       style={styles.bookmarkItem}
       onPress={() =>
@@ -154,12 +174,17 @@ const BookmarkScreen = () => {
         onPress={() => removeBookmark(item.surahId, item.nomorAyat)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Bookmark color="#A44AFF" size={24} fill="#A44AFF" strokeWidth={2} />
+        <Bookmark
+          color={PRIMARY_COLOR}
+          size={24}
+          fill={PRIMARY_COLOR}
+          strokeWidth={2}
+        />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 
-  const renderCollectionItem = ({ item }: { item: any }) => (
+  const renderCollectionItem = ({ item }: { item: Collection }) => (
     <TouchableOpacity
       style={styles.collectionItem}
       onPress={() =>
@@ -171,23 +196,23 @@ const BookmarkScreen = () => {
       onLongPress={() => handleLongPressCollection(item)}
     >
       <View style={styles.itemLeft}>
-        <Folder color="#A44AFF" size={28} />
+        <Folder color={PRIMARY_COLOR} size={28} />
         <View style={styles.textContainer}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={styles.collectionHeader}>
             <Text style={styles.collectionName}>{item.name}</Text>
             {item.isPinned && (
               <Pin
-                color="#FFD700"
+                color={PIN_COLOR}
                 size={14}
-                fill="#FFD700"
-                style={{ marginLeft: 8 }}
+                fill={PIN_COLOR}
+                style={styles.pinIcon}
               />
             )}
           </View>
           <Text style={styles.itemCount}>{item.items?.length || 0} items</Text>
         </View>
       </View>
-      <ChevronRight color="white" size={20} />
+      <ChevronRight color={TEXT_COLOR} size={20} />
     </TouchableOpacity>
   );
 
@@ -199,10 +224,10 @@ const BookmarkScreen = () => {
       {/* Add New Collection Button */}
       <TouchableOpacity style={styles.addSection} onPress={handleAddCollection}>
         <View style={styles.itemLeft}>
-          <PlusSquare color="#A44AFF" size={28} />
+          <PlusSquare color={PRIMARY_COLOR} size={28} />
           <Text style={styles.addText}>Add new collection</Text>
         </View>
-        <ListFilter color="white" size={24} />
+        <ListFilter color={TEXT_COLOR} size={24} />
       </TouchableOpacity>
 
       {/* Bookmarks List */}
@@ -210,7 +235,7 @@ const BookmarkScreen = () => {
         <>
           <Text style={styles.sectionTitle}>Bookmarked Ayahs</Text>
           <FlatList
-            data={bookmarks}
+            data={bookmarks as BookmarkItem[]}
             keyExtractor={(item) => `${item.surahId}-${item.nomorAyat}`}
             renderItem={renderBookmarkItem}
             contentContainerStyle={styles.listContent}
@@ -249,7 +274,7 @@ const BookmarkScreen = () => {
 
       {bookmarks.length === 0 && collections.length === 0 && (
         <View style={styles.emptyState}>
-          <Bookmark color="#8D92A3" size={48} />
+          <Bookmark color={SECONDARY_COLOR} size={48} />
           <Text style={styles.emptyStateText}>
             No bookmarks or collections yet
           </Text>
@@ -270,7 +295,7 @@ const BookmarkScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1535",
+    backgroundColor: BACKGROUND_COLOR,
   },
   addSection: {
     flexDirection: "row",
@@ -295,7 +320,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addText: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 18,
     fontWeight: "600",
     marginLeft: 15,
@@ -304,7 +329,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   sectionTitle: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 18,
     fontWeight: "bold",
     marginLeft: 20,
@@ -320,15 +345,15 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 0.5,
     borderBottomColor: "rgba(141, 146, 163, 0.3)",
-    backgroundColor: "rgba(26, 40, 68, 0.4)",
+    backgroundColor: ITEM_BACKGROUND_COLOR,
   },
   surahName: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 16,
     fontWeight: "600",
   },
   ayahNumber: {
-    color: "#8D92A3",
+    color: SECONDARY_COLOR,
     fontSize: 14,
   },
   row: {
@@ -337,7 +362,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   arabicTextSmall: {
-    color: "#8D92A3",
+    color: SECONDARY_COLOR,
     fontSize: 12,
     marginTop: 5,
   },
@@ -348,7 +373,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(42, 58, 90, 0.6)",
+    borderBottomColor: BORDER_COLOR,
     backgroundColor: "rgba(26, 40, 68, 0.3)",
   },
   collectionHeader: {
@@ -357,22 +382,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   collectionName: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 18,
     fontWeight: "600",
   },
   itemCount: {
-    color: "#8D92A3",
+    color: SECONDARY_COLOR,
     fontSize: 14,
     marginTop: 2,
   },
-  collectionActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  moreButton: {
-    padding: 8,
+  pinIcon: {
+    marginLeft: 8,
   },
   emptyState: {
     flex: 1,
@@ -381,20 +401,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyStateText: {
-    color: "#8D92A3",
+    color: SECONDARY_COLOR,
     fontSize: 18,
     marginTop: 16,
     textAlign: "center",
   },
   emptyStateButton: {
-    backgroundColor: "#A44AFF",
+    backgroundColor: PRIMARY_COLOR,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 24,
   },
   emptyStateButtonText: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 16,
     fontWeight: "600",
   },

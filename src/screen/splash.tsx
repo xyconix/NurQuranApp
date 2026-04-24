@@ -26,13 +26,45 @@ import Animated, {
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/AppNavigator"; // Sesuaikan path navigasimu
+import { RootStackParamList } from "../navigation/AppNavigator";
 import { StarSVG, CloudSVG, QuranSVG } from "../../assets/svg";
 import { useAppStore } from "../store/useAppStore";
+
+// Constants
 const { width, height } = Dimensions.get("window");
+const COLORS = {
+  background: "#0B1535",
+  cardBackground: "#6236CC",
+  text: "white",
+  secondaryText: "#8D92A3",
+  buttonBackground: "#FFB085",
+  buttonText: "#0B1535",
+};
+const SIZES = {
+  cardWidth: width * 0.9,
+  cardHeight: height * 0.6,
+  borderRadius: 32,
+  buttonRadius: 24,
+  padding: 20,
+  shadowHeight: 40,
+};
+const ANIMATION_DURATIONS = {
+  text: 1000,
+  card: 800,
+  quran: 2000,
+  button: 100,
+};
+const DELAYS = {
+  card: 500,
+};
 
+// Types
+type SplashScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "HomeScreen"
+>;
 
-// Membuat bayangan elips di bawah Quran menggunakan SVG Gradient
+// Components
 const QuranShadowSVG = () => (
   <Svg width="220" height="40" viewBox="0 0 220 40">
     <Defs>
@@ -45,69 +77,77 @@ const QuranShadowSVG = () => (
   </Svg>
 );
 
-// --- KOMPONEN UTAMA ---
-
-type SplashScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "HomeScreen"
->;
-
 const SplashScreen = () => {
   const navigation = useNavigation<SplashScreenNavigationProp>();
   const completeOnboarding = useAppStore((state) => state.completeOnboarding);
 
-  // Shared Values untuk Animasi
+  // Animation values
   const textOpacity = useSharedValue(0);
   const textTranslateY = useSharedValue(20);
-
   const cardScale = useSharedValue(0.9);
   const cardOpacity = useSharedValue(0);
-
   const quranFloating = useSharedValue(0);
   const shadowScale = useSharedValue(1);
-
   const buttonScale = useSharedValue(1);
 
   useEffect(() => {
-    // 1. Animasi Teks Atas (Fade In + Slide Up)
+    // Text animation
     textOpacity.value = withTiming(1, {
-      duration: 1000,
+      duration: ANIMATION_DURATIONS.text,
       easing: Easing.out(Easing.quad),
     });
     textTranslateY.value = withTiming(0, {
-      duration: 1000,
+      duration: ANIMATION_DURATIONS.text,
       easing: Easing.out(Easing.quad),
     });
 
-    // 2. Animasi Kartu Ungu Muncul (Fade In + Scale Up)
-    cardOpacity.value = withDelay(500, withTiming(1, { duration: 800 }));
+    // Card animation
+    cardOpacity.value = withDelay(
+      DELAYS.card,
+      withTiming(1, { duration: ANIMATION_DURATIONS.card })
+    );
     cardScale.value = withDelay(
-      500,
-      withTiming(1, { duration: 800, easing: Easing.back(1) }),
+      DELAYS.card,
+      withTiming(1, {
+        duration: ANIMATION_DURATIONS.card,
+        easing: Easing.back(1),
+      })
     );
 
-    // 3. Animasi Quran Mengambang (Looping)
+    // Quran floating animation
     quranFloating.value = withRepeat(
       withSequence(
-        withTiming(-10, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-10, {
+          duration: ANIMATION_DURATIONS.quran,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        withTiming(0, {
+          duration: ANIMATION_DURATIONS.quran,
+          easing: Easing.inOut(Easing.sin),
+        })
       ),
       -1,
-      true,
+      true
     );
 
-    // 4. Animasi Bayangan Mengecil saat Quran naik (Looping)
+    // Shadow animation
     shadowScale.value = withRepeat(
       withSequence(
-        withTiming(0.8, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.8, {
+          duration: ANIMATION_DURATIONS.quran,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        withTiming(1, {
+          duration: ANIMATION_DURATIONS.quran,
+          easing: Easing.inOut(Easing.sin),
+        })
       ),
       -1,
-      true,
+      true
     );
   }, []);
 
-  // Animated Styles
+  // Animated styles
   const animatedTextStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
     transform: [{ translateY: textTranslateY.value }],
@@ -124,24 +164,26 @@ const SplashScreen = () => {
 
   const animatedShadowStyle = useAnimatedStyle(() => ({
     transform: [{ scaleX: shadowScale.value }],
-    opacity: shadowScale.value, // Sedikit memudar saat mengecil
+    opacity: shadowScale.value,
   }));
 
-  // Animasi Tombol saat di-tap
   const animatedButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
   }));
 
+  // Button handlers
   const handlePressIn = () => {
-    buttonScale.value = withTiming(0.95, { duration: 100 });
+    buttonScale.value = withTiming(0.95, {
+      duration: ANIMATION_DURATIONS.button,
+    });
   };
 
   const handlePressOut = () => {
-    buttonScale.value = withTiming(1, { duration: 100 });
+    buttonScale.value = withTiming(1, { duration: ANIMATION_DURATIONS.button });
   };
 
   const handleGetStarted = () => {
-    completeOnboarding(); 
+    completeOnboarding();
     navigation.navigate("HomeScreen");
   };
 
@@ -149,7 +191,7 @@ const SplashScreen = () => {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Bagian Teks Atas */}
+      {/* Header Text */}
       <Animated.View style={[styles.textHeader, animatedTextStyle]}>
         <Text style={styles.title}>Nur Quran</Text>
         <Text style={styles.subtitle}>
@@ -157,9 +199,9 @@ const SplashScreen = () => {
         </Text>
       </Animated.View>
 
-      {/* Bagian Kartu Ungu Utama */}
+      {/* Main Card */}
       <Animated.View style={[styles.mainCard, animatedCardStyle]}>
-        {/* Dekorasi Latar Belakang (Bintang & Awan) - Posisikan Absolut */}
+        {/* Decorative Elements */}
         <View style={styles.star1}>
           <StarSVG />
         </View>
@@ -176,27 +218,24 @@ const SplashScreen = () => {
           <CloudSVG />
         </View>
 
-        {/* Quran dan Bayangannya */}
+        {/* Quran and Shadow */}
         <View style={styles.quranContainer}>
-          {/* Bayangan di bawah */}
           <Animated.View style={[styles.quranShadow, animatedShadowStyle]}>
             <QuranShadowSVG />
           </Animated.View>
-
-          {/* Al Quran yang mengambang */}
           <Animated.View style={animatedQuranStyle}>
             <QuranSVG />
           </Animated.View>
         </View>
 
-        {/* Tombol Get Started */}
+        {/* Get Started Button */}
         <Animated.View style={[styles.buttonWrapper, animatedButtonStyle]}>
           <TouchableOpacity
             style={styles.button}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             onPress={handleGetStarted}
-            activeOpacity={1} // Matikan default opacity change, kita pakai scale
+            activeOpacity={1}
           >
             <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>
@@ -209,9 +248,9 @@ const SplashScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1535", // Warna background biru gelap sesuai gambar
+    backgroundColor: COLORS.background,
     alignItems: "center",
-    justifyContent: "space-between", // Sebar konten atas dan bawah
+    justifyContent: "space-between",
     paddingTop: 80,
     paddingBottom: 40,
   },
@@ -222,30 +261,30 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "white",
+    color: COLORS.text,
     marginBottom: 10,
-    fontFamily: "System", // Gunakan font custom jika ada
+    fontFamily: "System",
   },
   subtitle: {
     fontSize: 16,
-    color: "#8D92A3", // Warna teks abu-abu kebiruan
+    color: COLORS.secondaryText,
     textAlign: "center",
     lineHeight: 24,
     fontFamily: "System",
   },
   mainCard: {
-    width: width * 0.9, // 90% lebar layar
-    height: height * 0.6, // 60% tinggi layar
-    backgroundColor: "#6236CC", // Warna ungu kartu
-    borderRadius: 32,
-    padding: 20,
+    width: SIZES.cardWidth,
+    height: SIZES.cardHeight,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SIZES.borderRadius,
+    padding: SIZES.padding,
     alignItems: "center",
-    justifyContent: "flex-end", // Elemen utama di kartu mepet bawah
-    overflow: "hidden", // Agar awan terpotong rapi di pinggir
+    justifyContent: "flex-end",
+    overflow: "hidden",
     position: "relative",
-    top :-60
+    top: -60,
   },
-  // Posisi dekorasi SVG
+  // Decorative elements positions
   star1: { position: "absolute", top: 40, left: 30, opacity: 0.8 },
   star2: { position: "absolute", top: 100, left: 130 },
   star3: { position: "absolute", top: 200, right: 30, opacity: 0.6 },
@@ -256,33 +295,31 @@ const styles = StyleSheet.create({
     right: -10,
     transform: [{ scale: 1.2 }],
   },
-
   quranContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40, // Jarak ke tombol
+    marginBottom: 40,
     position: "relative",
     width: "100%",
-    height: 180, // Tentukan tinggi kontainer agar bayangan tidak lari
+    height: 180,
   },
   quranShadow: {
     position: "absolute",
-    bottom: -15, // Posisikan di bawah sedikit
-    zIndex: -1, // Di belakang Quran
+    bottom: -15,
+    zIndex: -1,
   },
   buttonWrapper: {
     width: "80%",
     marginBottom: 20,
-        
   },
   button: {
-    backgroundColor: "#FFB085", // Warna peach/oranye tombol
+    backgroundColor: COLORS.buttonBackground,
     paddingVertical: 16,
-    borderRadius: 24,
+    borderRadius: SIZES.buttonRadius,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 5, // Bayangan di Android
-    shadowColor: "#000", // Bayangan di iOS
+    elevation: 5,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -290,7 +327,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#0B1535", // Warna teks tombol biru gelap
+    color: COLORS.buttonText,
   },
 });
 

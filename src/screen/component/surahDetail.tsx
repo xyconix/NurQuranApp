@@ -20,8 +20,37 @@ import type { Bookmark as BookmarkType } from "../../store/useAppStore";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
+// Constants
+const PRIMARY_COLOR = "#A44AFF";
+const SECONDARY_COLOR = "#8D92A3";
+const BACKGROUND_COLOR = "#0B1535";
+const CARD_BACKGROUND_COLOR = "#6236CC";
+const TEXT_COLOR = "white";
+const BORDER_COLOR = "rgba(141, 146, 163, 0.2)";
+const ACTION_BAR_BACKGROUND = "rgba(18, 25, 49, 0.5)";
+
+// Types
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-const fetchSurahDetail = async (id: number) => {
+type Ayah = {
+  nomorAyat: number;
+  teksArab: string;
+  teksIndonesia: string;
+  audio: {
+    "05": string;
+  };
+};
+
+type Surah = {
+  namaLatin: string;
+  arti: string;
+  tempatTurun: string;
+  jumlahAyat: number;
+  nama: string;
+  ayat: Ayah[];
+};
+
+// Fetch surah detail
+const fetchSurahDetail = async (id: number): Promise<Surah> => {
   const response = await axios.get(`https://equran.id/api/v2/surat/${id}`);
   return response.data.data;
 };
@@ -33,14 +62,7 @@ const SurahDetail = () => {
 
   const navigation = useNavigation<NavigationProp>();
 
-  const handleSearchPress = () => {
-    navigation.navigate("Search");
-  };
-
-  const handleHome = () => {
-    navigation.navigate("HomeScreen");
-  }
-  //Store
+  // Store
   const {
     addBookmark,
     removeBookmark,
@@ -51,23 +73,31 @@ const SurahDetail = () => {
     createCollection,
   } = useQuranStore();
 
-  const [collectionInput, setCollectionInput] = useState("");
-
-  //Audio
+  // Audio
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
-  //Toggle Bookmark
-  //share
+
+  // Query
   const { data: surah, isLoading } = useQuery({
     queryKey: ["surah", surahId],
     queryFn: () => fetchSurahDetail(surahId),
   });
 
-  const toggleBookmarkWithCollection = (item: any) => {
+  // Navigation handlers
+  const handleSearchPress = () => {
+    navigation.navigate("Search");
+  };
+
+  const handleHome = () => {
+    navigation.navigate("HomeScreen");
+  };
+
+  // Bookmark handlers
+  const toggleBookmarkWithCollection = (item: Ayah) => {
     if (isBookmarked(surahId, item.nomorAyat)) {
       removeBookmark(surahId, item.nomorAyat);
     } else {
-      // Tampilkan pilihan koleksi
+      // Show collection options
       const buttons: any[] = collections.map((col: any) => ({
         text: col.name,
         onPress: () => {
@@ -120,6 +150,7 @@ const SurahDetail = () => {
       );
     }
   };
+
   const handleBookmark = (nomorAyat: number, ayahText: string) => {
     const bookmark = {
       surahId: surahId,
@@ -135,11 +166,44 @@ const SurahDetail = () => {
     }
   };
 
-  const renderAyatItem = ({ item, index }: any) => {
+  // Audio handlers
+  const playAudio = async (audioUrl: string, ayatNumber: number) => {
+    if (sound) {
+      await sound.unloadAsync();
+    }
+    const { sound: newSound } = await Audio.Sound.createAsync(
+      { uri: audioUrl },
+      { shouldPlay: true },
+    );
+    setSound(newSound);
+    setPlayingAyat(ayatNumber);
+
+    // Update last read when playing audio
+    setLastRead({
+      surahId: surahId,
+      surahName: surah?.nama || "",
+      nomorAyat: ayatNumber,
+      namaLatin: surah?.namaLatin || "",
+    });
+  };
+
+  // Share handler
+  const onShare = async (item: Ayah) => {
+    try {
+      await Share.share({
+        message: `${item.teksArab}\n\n${item.teksIndonesia}\n\nFrom Surah ${surah?.namaLatin} (${item.nomorAyat})`,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  // Render ayah item
+  const renderAyatItem = ({ item, index }: { item: Ayah; index: number }) => {
     const bookmarked = isBookmarked(surahId, item.nomorAyat);
     const isPlaying = playingAyat === item.nomorAyat;
 
-    const toggleBookmark = (item: any) => {
+    const toggleBookmark = (item: Ayah) => {
       if (bookmarked) {
         removeBookmark(surahId, item.nomorAyat);
       } else {
@@ -151,11 +215,11 @@ const SurahDetail = () => {
       }
     };
 
-    const onBookmarkPress = (item: any) => {
+    const onBookmarkPress = (item: Ayah) => {
       if (bookmarked) {
         removeBookmark(surahId, item.nomorAyat);
       } else {
-        // Default simpan ke Bookmarked Ayahs biasa
+        // Default save to regular bookmarks
         addBookmark({
           surahId,
           nomorAyat: item.nomorAyat,
@@ -165,7 +229,7 @@ const SurahDetail = () => {
       }
     };
 
-    const onBookmarkLongPress = (item: any) => {
+    const onBookmarkLongPress = (item: Ayah) => {
       const currentCollections = useQuranStore.getState().collections;
 
       const options: any[] = currentCollections.map((c) => ({
@@ -203,35 +267,6 @@ const SurahDetail = () => {
       Alert.alert("Simpan ke Koleksi", "Pilih folder penyimpanan:", options);
     };
 
-    const playAudio = async (audioUrl: string, ayatNumber: number) => {
-      if (sound) {
-        await sound.unloadAsync();
-      }
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true },
-      );
-      setSound(newSound);
-      setPlayingAyat(ayatNumber);
-
-      // Update last read saat play audio
-      setLastRead({
-        surahId: surahId,
-        surahName: surah?.nama || "",
-        nomorAyat: ayatNumber,
-        namaLatin: surah?.namaLatin || "",
-      });
-    };
-
-    const onShare = async (item: any) => {
-      try {
-        await Share.share({
-          message: `${item.teksArab}\n\n${item.teksIndonesia}\n\nFrom Surah ${surah?.namaLatin} (${item.nomorAyat})`,
-        });
-      } catch (error) {
-        console.error("Error sharing:", error);
-      }
-    };
     return (
       <Animated.View
         entering={FadeInUp.delay(index * 50)}
@@ -246,27 +281,27 @@ const SurahDetail = () => {
               onPress={() => onShare(item)}
               style={styles.actionIcon}
             >
-              <Share2 color="#A44AFF" size={20} />
+              <Share2 color={PRIMARY_COLOR} size={20} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => playAudio(item.audio["05"], item.nomorAyat)}
               style={styles.actionIcon}
             >
               <Play
-                color="#A44AFF"
+                color={PRIMARY_COLOR}
                 size={20}
-                fill={isPlaying ? "#A44AFF" : "transparent"}
+                fill={isPlaying ? PRIMARY_COLOR : "transparent"}
               />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => toggleBookmark(item)}
-              onLongPress={() => onBookmarkLongPress(item)} // Tambahkan ini
+              onLongPress={() => onBookmarkLongPress(item)}
               style={styles.actionIcon}
             >
               <Bookmark
-                color="#A44AFF"
+                color={PRIMARY_COLOR}
                 size={20}
-                fill={bookmarked ? "#A44AFF" : "transparent"}
+                fill={bookmarked ? PRIMARY_COLOR : "transparent"}
               />
             </TouchableOpacity>
           </View>
@@ -277,7 +312,7 @@ const SurahDetail = () => {
     );
   };
 
-  // Bersihkan audio saat keluar halaman
+  // Clean up audio when component unmounts
   React.useEffect(() => {
     return sound
       ? () => {
@@ -286,7 +321,7 @@ const SurahDetail = () => {
       : undefined;
   }, [sound]);
 
-  // Handle viewable items change untuk track last read saat scroll
+  // Handle viewable items change for tracking last read
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: any[] }) => {
       if (viewableItems.length > 0 && surah) {
@@ -309,14 +344,26 @@ const SurahDetail = () => {
     [],
   );
 
-  // Scroll ke ayat tertentu ketika data loaded
+  // Handle scroll to index failure
+  const handleScrollToIndexFailed = (info: {
+    index: number;
+    highestMeasuredFrameIndex: number;
+    averageItemLength: number;
+  }) => {
+    flatListRef.current?.scrollToOffset({
+      offset: info.averageItemLength * info.index,
+      animated: true,
+    });
+  };
+
+  // Scroll to specific ayah when data is loaded
   React.useEffect(() => {
     if (surah && nomorAyat) {
       const ayatIndex = surah.ayat.findIndex(
-        (ayat: any) => ayat.nomorAyat === nomorAyat,
+        (ayat: Ayah) => ayat.nomorAyat === nomorAyat,
       );
       if (ayatIndex !== -1 && flatListRef.current) {
-        // Delay untuk memastikan FlatList sudah fully rendered
+        // Delay to ensure FlatList is fully rendered
         setTimeout(() => {
           flatListRef.current?.scrollToIndex({
             index: ayatIndex,
@@ -330,19 +377,17 @@ const SurahDetail = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Navigasi */}
+      {/* Navigation Header */}
       <View style={styles.navHeader}>
         <TouchableOpacity onPress={handleHome}>
-          <ArrowLeft color="#8D92A3" size={28} />
+          <ArrowLeft color={SECONDARY_COLOR} size={28} />
         </TouchableOpacity>
         <Text style={styles.navTitle}>{surah?.namaLatin || "Loading..."}</Text>
-        <Search color="#8D92A3" size={28} onPress={handleSearchPress} />
+        <Search color={SECONDARY_COLOR} size={28} onPress={handleSearchPress} />
       </View>
 
       {isLoading ? (
-        <Text style={{ color: "white", textAlign: "center", marginTop: 20 }}>
-          Memuat Ayat...
-        </Text>
+        <Text style={styles.loadingText}>Memuat Ayat...</Text>
       ) : (
         <FlatList
           ref={flatListRef}
@@ -352,18 +397,21 @@ const SurahDetail = () => {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           scrollEventThrottle={16}
+          onScrollToIndexFailed={handleScrollToIndexFailed}
           ListHeaderComponent={
-            <View style={styles.bannerCard}>
-              <Text style={styles.bannerTitle}>{surah.namaLatin}</Text>
-              <Text style={styles.bannerSub}>{surah.arti}</Text>
-              <View style={styles.divider} />
-              <Text style={styles.bannerInfo}>
-                {surah.tempatTurun.toUpperCase()} • {surah.jumlahAyat} VERSES
-              </Text>
-              <Text style={styles.bismillah}>
-                بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم
-              </Text>
-            </View>
+            surah ? (
+              <View style={styles.bannerCard}>
+                <Text style={styles.bannerTitle}>{surah.namaLatin}</Text>
+                <Text style={styles.bannerSub}>{surah.arti}</Text>
+                <View style={styles.divider} />
+                <Text style={styles.bannerInfo}>
+                  {surah.tempatTurun.toUpperCase()} • {surah.jumlahAyat} VERSES
+                </Text>
+                <Text style={styles.bismillah}>
+                  بِسْمِ اللَّهُ الرَّحْمَنِ الرَّحِيم
+                </Text>
+              </View>
+            ) : null
           }
           contentContainerStyle={styles.listContent}
         />
@@ -373,49 +421,71 @@ const SurahDetail = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1535" },
+  container: {
+    flex: 1,
+    backgroundColor: BACKGROUND_COLOR,
+  },
   navHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 20,
   },
-  navTitle: { color: "white", fontSize: 20, fontWeight: "bold" },
+  navTitle: {
+    color: TEXT_COLOR,
+    fontSize: 20,
+    fontWeight: "bold",
+  },
   bannerCard: {
     margin: 20,
     padding: 28,
     borderRadius: 20,
-    backgroundColor: "#6236CC", // Gradasi ungu sesuai gambar
+    backgroundColor: CARD_BACKGROUND_COLOR,
     alignItems: "center",
     justifyContent: "center",
   },
-  bannerTitle: { color: "white", fontSize: 26, fontWeight: "bold" },
-  bannerSub: { color: "white", fontSize: 16, marginTop: 4, opacity: 0.9 },
+  bannerTitle: {
+    color: TEXT_COLOR,
+    fontSize: 26,
+    fontWeight: "bold",
+  },
+  bannerSub: {
+    color: TEXT_COLOR,
+    fontSize: 16,
+    marginTop: 4,
+    opacity: 0.9,
+  },
   divider: {
     height: 1,
     backgroundColor: "rgba(255,255,255,0.3)",
     width: "80%",
     marginVertical: 16,
   },
-  bannerInfo: { color: "white", fontSize: 14, fontWeight: "500" },
+  bannerInfo: {
+    color: TEXT_COLOR,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   bismillah: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 24,
     marginTop: 20,
     fontFamily: "System",
   },
-  listContent: { paddingBottom: 40 },
+  listContent: {
+    paddingBottom: 40,
+  },
   ayatContainer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(141, 146, 163, 0.2)",
+    borderBottomColor: BORDER_COLOR,
   },
   ayatActionBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(18, 25, 49, 0.5)",
+    backgroundColor: ACTION_BAR_BACKGROUND,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -425,23 +495,42 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#A44AFF",
+    backgroundColor: PRIMARY_COLOR,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
-  ayatNumberText: { color: "white", fontWeight: "bold", fontSize: 12 },
-  actionButtons: { flexDirection: "row", alignItems: "center", gap: 18 },
-  actionIcon: { padding: 4 },
+  ayatNumberText: {
+    color: TEXT_COLOR,
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+  },
+  actionIcon: {
+    padding: 4,
+  },
   arabicText: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 24,
     textAlign: "right",
     fontWeight: "bold",
     marginBottom: 16,
     lineHeight: 45,
   },
-  translationText: { color: "#8D92A3", fontSize: 16, lineHeight: 24 },
+  translationText: {
+    color: SECONDARY_COLOR,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  loadingText: {
+    color: TEXT_COLOR,
+    textAlign: "center",
+    marginTop: 20,
+  },
 });
 
 export default SurahDetail;

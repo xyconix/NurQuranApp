@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,27 +12,57 @@ import { Search, ArrowLeft, X } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuranStore } from "../store/useAppStore";
 
+// Constants
+const MIN_SEARCH_LENGTH = 2;
+const COLORS = {
+  primary: "#A44AFF",
+  background: "#0B1535",
+  cardBackground: "rgba(26, 40, 68, 0.4)",
+  inputBackground: "#121931",
+  text: "white",
+  secondaryText: "#8D92A3",
+  border: "rgba(164, 74, 255, 0.2)",
+};
+
+const SIZES = {
+  borderRadius: 12,
+  padding: 20,
+  cardPadding: 16,
+  numberBadge: 40,
+  searchBarHeight: 50,
+  iconSize: 24,
+  smallIconSize: 20,
+};
+
+interface Surah {
+  nomor: number;
+  namaLatin: string;
+  arti: string;
+  jumlahAyat: number;
+  nama: string;
+}
+
 const SearchScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState("");
   const { allSurahs } = useQuranStore();
 
-  // Pencarian Instant (Tanpa Loading API)
   const filteredResults = useMemo(() => {
-    if (query.length < 2) return [];
+    if (query.length < MIN_SEARCH_LENGTH) return [];
 
     const searchKey = query.toLowerCase();
     return allSurahs.filter(
-      (surah) =>
+      (surah: Surah) =>
         surah.namaLatin.toLowerCase().includes(searchKey) ||
         surah.arti.toLowerCase().includes(searchKey)
     );
   }, [query, allSurahs]);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setQuery("");
-  };
-  const renderItem = ({ item }: { item: any }) => (
+  }, []);
+
+  const renderItem = useCallback(({ item }: { item: Surah }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate("SurahDetail", { surahId: item.nomor })}
@@ -42,7 +72,7 @@ const SearchScreen = () => {
         <View style={styles.numberBadge}>
           <Text style={styles.numberText}>{item.nomor}</Text>
         </View>
-        <View style={{ flex: 1, marginLeft: 12 }}>
+        <View style={styles.surahInfo}>
           <Text style={styles.title}>{item.namaLatin}</Text>
           <Text style={styles.subTitle}>
             {item.arti} • {item.jumlahAyat} Ayat
@@ -51,52 +81,56 @@ const SearchScreen = () => {
         <Text style={styles.arabic}>{item.nama}</Text>
       </View>
     </TouchableOpacity>
+  ), [navigation]);
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      {query.length < MIN_SEARCH_LENGTH ? (
+        <>
+          <View style={styles.bigSearchIcon}>
+            <Search color={COLORS.primary} size={80} opacity={0.3} />
+          </View>
+          <Text style={styles.emptyTitle}>Mulai Pencarian</Text>
+          <Text style={styles.emptySub}>
+            Masukkan minimal {MIN_SEARCH_LENGTH} huruf untuk mencari surah Quran.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.emptyTitle}>Surah Tidak Ditemukan</Text>
+          <Text style={styles.emptySub}>
+            Coba cari dengan kata kunci lain
+          </Text>
+        </>
+      )}
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header & Search Bar */}
       <View style={styles.searchHeader}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft color="white" size={24} />
+          <ArrowLeft color={COLORS.text} size={SIZES.iconSize} />
         </TouchableOpacity>
         <View style={styles.searchBar}>
-          <Search color="#8D92A3" size={20} />
+          <Search color={COLORS.secondaryText} size={SIZES.smallIconSize} />
           <TextInput
             style={styles.input}
             placeholder="Cari Surah (contoh: Al-Fatihah)"
-            placeholderTextColor="#8D92A3"
+            placeholderTextColor={COLORS.secondaryText}
             value={query}
             onChangeText={setQuery}
             autoFocus
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={handleClearSearch}>
-              <X color="white" size={20} />
+              <X color={COLORS.text} size={SIZES.smallIconSize} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Conditional Rendering berdasarkan status search */}
-      {query.length < 2 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.bigSearchIcon}>
-            <Search color="#A44AFF" size={80} opacity={0.3} />
-          </View>
-          <Text style={styles.emptyTitle}>Mulai Pencarian</Text>
-          <Text style={styles.emptySub}>
-            Masukkan minimal 2 huruf untuk mencari surah Quran.
-          </Text>
-        </View>
-      ) : filteredResults.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Surah Tidak Ditemukan</Text>
-          <Text style={styles.emptySub}>
-            Coba cari dengan kata kunci lain
-          </Text>
-        </View>
-      ) : (
+      {filteredResults.length > 0 ? (
         <View style={styles.resultsContainer}>
           <Text style={styles.foundText}>
             Ditemukan {filteredResults.length} hasil
@@ -105,35 +139,40 @@ const SearchScreen = () => {
             data={filteredResults}
             keyExtractor={(item) => item.nomor.toString()}
             renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={styles.listContent}
             scrollEnabled
           />
         </View>
+      ) : (
+        renderEmptyState()
       )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1535" },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   searchHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    padding: SIZES.padding,
     gap: 15,
   },
   searchBar: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#121931",
-    borderRadius: 12,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: SIZES.borderRadius,
     paddingHorizontal: 15,
-    height: 50,
+    height: SIZES.searchBarHeight,
   },
   input: {
     flex: 1,
-    color: "white",
+    color: COLORS.text,
     fontSize: 16,
     marginLeft: 10,
   },
@@ -146,40 +185,43 @@ const styles = StyleSheet.create({
   bigSearchIcon: {
     width: 150,
     height: 150,
-    backgroundColor: "#121931",
+    backgroundColor: COLORS.inputBackground,
     borderRadius: 75,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 30,
   },
   emptyTitle: {
-    color: "white",
+    color: COLORS.text,
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
   },
   emptySub: {
-    color: "#8D92A3",
+    color: COLORS.secondaryText,
     textAlign: "center",
     lineHeight: 22,
   },
   resultsContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: SIZES.padding,
   },
   foundText: {
-    color: "#8D92A3",
+    color: COLORS.secondaryText,
     marginBottom: 15,
     fontSize: 14,
     marginTop: 10,
   },
+  listContent: {
+    paddingBottom: 20,
+  },
   card: {
-    backgroundColor: "rgba(26, 40, 68, 0.4)",
-    borderRadius: 15,
-    padding: 16,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SIZES.borderRadius,
+    padding: SIZES.cardPadding,
     marginBottom: 12,
     borderWidth: 0.5,
-    borderColor: "rgba(164, 74, 255, 0.2)",
+    borderColor: COLORS.border,
   },
   cardHeader: {
     flexDirection: "row",
@@ -187,30 +229,34 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   numberBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#A44AFF",
+    width: SIZES.numberBadge,
+    height: SIZES.numberBadge,
+    borderRadius: SIZES.numberBadge / 2,
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   numberText: {
-    color: "white",
+    color: COLORS.text,
     fontWeight: "bold",
     fontSize: 14,
   },
+  surahInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
   title: {
-    color: "white",
+    color: COLORS.text,
     fontSize: 16,
     fontWeight: "600",
   },
   subTitle: {
-    color: "#8D92A3",
+    color: COLORS.secondaryText,
     fontSize: 13,
     marginTop: 4,
   },
   arabic: {
-    color: "#A44AFF",
+    color: COLORS.primary,
     fontSize: 18,
     fontWeight: "bold",
   },

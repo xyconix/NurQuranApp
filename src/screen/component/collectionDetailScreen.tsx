@@ -8,11 +8,36 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
-import { ArrowLeft, Trash2, Share2, Pin, Edit } from "lucide-react-native";
+import { ArrowLeft, Trash2, Share2, Pin } from "lucide-react-native";
 import { useRoute } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuranStore } from "../../store/useAppStore";
 import BottomTabBar from "../../components/MainTabNavigator";
+
+// Constants
+const PRIMARY_COLOR = "#A44AFF";
+const ERROR_COLOR = "#FF6B6B";
+const TEXT_COLOR = "white";
+const SECONDARY_TEXT_COLOR = "#8D92A3";
+const BORDER_COLOR = "rgba(42, 58, 90, 0.6)";
+const BACKGROUND_COLOR = "#0B1535";
+const ITEM_BACKGROUND_COLOR = "rgba(26, 40, 68, 0.4)";
+const PIN_COLOR = "#FFD700";
+
+// Types
+type AyahItem = {
+  surahId: number;
+  nomorAyat: number;
+  surahName: string;
+  ayahText: string;
+};
+
+type Collection = {
+  id: string;
+  name: string;
+  isPinned: boolean;
+  items?: AyahItem[];
+};
 
 const CollectionDetailScreen = () => {
   const navigation = useNavigation<any>();
@@ -57,20 +82,20 @@ const CollectionDetailScreen = () => {
     );
   };
 
-  const handleShare = (item: any) => {
+  const handleShare = (item: AyahItem) => {
     const message = `${item.surahName} - Ayah ${item.nomorAyat}\n\n${item.ayahText}`;
     // Implement sharing logic here
     Alert.alert("Share", message);
   };
 
-  const handleNavigateToSurah = (item: any) => {
+  const handleNavigateToSurah = (item: AyahItem) => {
     navigation.navigate("SurahDetail", {
       surahId: item.surahId,
       nomorAyat: item.nomorAyat,
     });
   };
 
-  const renderAyahItem = ({ item }: { item: any }) => (
+  const renderAyahItem = ({ item }: { item: AyahItem }) => (
     <View style={styles.ayahItem}>
       <TouchableOpacity
         style={styles.ayahContent}
@@ -85,12 +110,12 @@ const CollectionDetailScreen = () => {
       </TouchableOpacity>
       <View style={styles.ayahActions}>
         <TouchableOpacity onPress={() => handleShare(item)}>
-          <Share2 color="#A44AFF" size={20} />
+          <Share2 color={PRIMARY_COLOR} size={20} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => handleRemoveAyah(item.surahId, item.nomorAyat)}
         >
-          <Trash2 color="#FF6B6B" size={20} />
+          <Trash2 color={ERROR_COLOR} size={20} />
         </TouchableOpacity>
       </View>
     </View>
@@ -101,12 +126,12 @@ const CollectionDetailScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft color="white" size={24} />
+          <ArrowLeft color={TEXT_COLOR} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{collection.name}</Text>
         <View style={styles.headerIcons}>
           {collection.isPinned && (
-            <Pin color="#FFD700" size={20} fill="#FFD700" />
+            <Pin color={PIN_COLOR} size={20} fill={PIN_COLOR} />
           )}
         </View>
       </View>
@@ -120,7 +145,7 @@ const CollectionDetailScreen = () => {
       {/* Ayahs List */}
       {collection.items && collection.items.length > 0 ? (
         <FlatList
-          data={collection.items}
+          data={collection.items as AyahItem[]}
           keyExtractor={(item) => `${item.surahId}-${item.nomorAyat}`}
           renderItem={renderAyahItem}
           contentContainerStyle={styles.listContent}
@@ -141,7 +166,7 @@ const CollectionDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1535",
+    backgroundColor: BACKGROUND_COLOR,
   },
   header: {
     flexDirection: "row",
@@ -150,10 +175,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(42, 58, 90, 0.6)",
+    borderBottomColor: BORDER_COLOR,
   },
   headerTitle: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 20,
     fontWeight: "bold",
     flex: 1,
@@ -163,14 +188,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  infoSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(42, 58, 90, 0.6)",
-  },
   itemCount: {
-    color: "#8D92A3",
+    color: SECONDARY_TEXT_COLOR,
     fontSize: 14,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -184,8 +203,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(42, 58, 90, 0.6)",
-    backgroundColor: "rgba(26, 40, 68, 0.4)",
+    borderBottomColor: BORDER_COLOR,
+    backgroundColor: ITEM_BACKGROUND_COLOR,
   },
   ayahContent: {
     flex: 1,
@@ -198,16 +217,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   surahName: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 16,
     fontWeight: "600",
   },
   ayahNumber: {
-    color: "#8D92A3",
+    color: SECONDARY_TEXT_COLOR,
     fontSize: 14,
   },
   ayahText: {
-    color: "#8D92A3",
+    color: SECONDARY_TEXT_COLOR,
     fontSize: 13,
     lineHeight: 20,
   },
@@ -224,11 +243,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyStateText: {
-    color: "#8D92A3",
+    color: SECONDARY_TEXT_COLOR,
     fontSize: 16,
   },
   errorText: {
-    color: "white",
+    color: TEXT_COLOR,
     fontSize: 18,
     textAlign: "center",
     marginTop: 20,

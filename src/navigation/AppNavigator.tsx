@@ -1,16 +1,20 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screen/homeScreen";
-import qiblatScreen from "../screen/qiblatScreen";
-import prayerTimeScreen from "../screen/prayerTimeScreen";
-import fastingScreen from "../screen/fastingScreen";
-import tasbihScreen from "../screen/tasbihScreen";
+import PrayerTimeScreen from "../screen/prayerTimeScreen";
+import QiblaScreen from "../screen/qiblatScreen";
+import FastingScreen from "../screen/fastingScreen";
+import TasbihScreen from "../screen/tasbihScreen";
 import BookmarkScreen from "../screen/bookmarkScreen";
 import CollectionDetailScreen from "../screen/component/collectionDetailScreen";
 import SurahDetail from "../screen/component/surahDetail";
 import JuzDetail from "../screen/component/juzDetail";
 import SearchScreen from "../screen/searchScreen";
 
+// Constants
+const SCREEN_OPTIONS = { headerShown: false };
+
+// Types
 export type RootStackParamList = {
   HomeScreen: undefined;
   QiblatScreen: undefined;
@@ -24,24 +28,31 @@ export type RootStackParamList = {
   Search: undefined;
 };
 
+// Screen configuration
+const SCREENS: Array<{
+  name: keyof RootStackParamList;
+  component: React.ComponentType<any>;
+}> = [
+  { name: "HomeScreen", component: HomeScreen },
+  { name: "QiblatScreen", component: QiblaScreen },
+  { name: "PrayerTimesScreen", component: PrayerTimeScreen },
+  { name: "FastingScreen", component: FastingScreen },
+  { name: "TasbihScreen", component: TasbihScreen },
+  { name: "BookmarkScreen", component: BookmarkScreen },
+  { name: "CollectionDetail", component: CollectionDetailScreen },
+  { name: "SurahDetail", component: SurahDetail },
+  { name: "JuzDetail", component: JuzDetail },
+  { name: "Search", component: SearchScreen },
+];
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HomeScreen" component={HomeScreen} />
-      <Stack.Screen name="QiblatScreen" component={qiblatScreen} />
-      <Stack.Screen name="PrayerTimesScreen" component={prayerTimeScreen} />
-      <Stack.Screen name="FastingScreen" component={fastingScreen} />
-      <Stack.Screen name="TasbihScreen" component={tasbihScreen} />
-      <Stack.Screen name="BookmarkScreen" component={BookmarkScreen} />
-      <Stack.Screen
-        name="CollectionDetail"
-        component={CollectionDetailScreen}
-      />
-      <Stack.Screen name="SurahDetail" component={SurahDetail} />
-      <Stack.Screen name="JuzDetail" component={JuzDetail} />
-      <Stack.Screen name="Search" component={SearchScreen} />
+    <Stack.Navigator screenOptions={SCREEN_OPTIONS}>
+      {SCREENS.map(({ name, component }) => (
+        <Stack.Screen key={name} name={name} component={component} />
+      ))}
     </Stack.Navigator>
   );
 }
