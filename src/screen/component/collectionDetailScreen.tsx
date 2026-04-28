@@ -11,7 +11,7 @@ import {
 import { ArrowLeft, Trash2, Share2, Pin } from "lucide-react-native";
 import { useRoute } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
-import { useQuranStore } from "../../store/useAppStore";
+import { useAppStore } from "../../store/useAppStore";
 import BottomTabBar from "../../components/MainTabNavigator";
 
 // Constants
@@ -50,7 +50,7 @@ const CollectionDetailScreen = () => {
     deleteCollection,
     pinCollection,
     unpinCollection,
-  } = useQuranStore();
+  } = useAppStore();
 
   const collection = collections.find((c) => c.id === collectionId);
 

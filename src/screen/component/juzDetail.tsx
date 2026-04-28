@@ -15,7 +15,7 @@ import axios from "axios";
 import { ArrowLeft, Share2, Play, Bookmark, Search } from "lucide-react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { Audio } from "expo-av";
-import { useQuranStore } from "../../store/useAppStore";
+import { useAppStore } from "../../store/useAppStore";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { AnimatedQuran } from "../../components/SurahAssets";
 
@@ -91,7 +91,7 @@ const JuzDetail = () => {
   const { juzId } = route.params;
 
   // Store
-  const { addBookmark, removeBookmark, isBookmarked } = useQuranStore();
+  const { addBookmark, removeBookmark, isBookmarked } = useAppStore();
 
   // Audio state
   const [sound, setSound] = React.useState<Audio.Sound | null>(null);

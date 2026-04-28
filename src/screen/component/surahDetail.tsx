@@ -15,7 +15,7 @@ import { ArrowLeft, Search, Share2, Play, Bookmark } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { Audio } from "expo-av";
-import { useAppStore, useQuranStore } from "../../store/useAppStore";
+import { useAppStore } from "../../store/useAppStore";
 import type { Bookmark as BookmarkType } from "../../store/useAppStore";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -71,7 +71,7 @@ const SurahDetail = () => {
     collections,
     addAyatToCollection,
     createCollection,
-  } = useQuranStore();
+  } = useAppStore();
 
   // Audio
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -230,7 +230,7 @@ const SurahDetail = () => {
     };
 
     const onBookmarkLongPress = (item: Ayah) => {
-      const currentCollections = useQuranStore.getState().collections;
+      const currentCollections = useAppStore.getState().collections;
 
       const options: any[] = currentCollections.map((c) => ({
         text: c.name,

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Search, ArrowLeft, X } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useQuranStore } from "../store/useAppStore";
+import { useAppStore } from "../store/useAppStore";
 
 // Constants
 const MIN_SEARCH_LENGTH = 2;
@@ -45,7 +45,7 @@ interface Surah {
 const SearchScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState("");
-  const { allSurahs } = useQuranStore();
+  const { allSurahs } = useAppStore();
 
   const filteredResults = useMemo(() => {
     if (query.length < MIN_SEARCH_LENGTH) return [];

@@ -18,7 +18,7 @@ import MainTabNavigator from "../components/MainTabNavigator";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
-import { useQuranStore } from "../store/useAppStore";
+import { useAppStore } from "../store/useAppStore";
 import Header from "./component/Header";
 import { preloadQuranData } from "./component/preloadQuranData";
 
@@ -36,7 +36,7 @@ const HomeScreen = () => {
   // State harus ada di dalam komponen
   const [activeTab, setActiveTab] = useState("Surah");
   const navigation = useNavigation<NavigationProp>();
-  const { lastRead } = useQuranStore();
+  const { lastRead } = useAppStore();
 
   const { data: surahs, isLoading } = useQuery({
     queryKey: ["surahs"],

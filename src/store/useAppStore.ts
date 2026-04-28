@@ -2,29 +2,13 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-interface AppState {
-  isFirstTime: boolean;
-  completeOnboarding: () => void;
-}
-
-export const useAppStore = create<AppState>()(
-  persist(
-    (set) => ({
-      isFirstTime: true, // Defaultnya true (user baru)
-      completeOnboarding: () => set({ isFirstTime: false }),
-    }),
-    {
-      name: "app-storage", // Nama key di storage
-      storage: createJSONStorage(() => AsyncStorage),
-    },
-  ),
-);
+/* ================= TYPES ================= */
 
 export interface Bookmark {
   surahId: number;
   nomorAyat: number;
   surahName: string;
-  ayahText?: string; // Optional ayah text
+  ayahText?: string;
 }
 
 interface LastRead {
@@ -42,54 +26,97 @@ export interface Collection {
   createdAt: number;
 }
 
-interface QuranState {
-  bookmarks: Bookmark[]; // Standalone bookmarks (tidak dalam collection)
+/* ================= STORE ================= */
+
+interface AppStore {
+  // ===== ONBOARDING =====
+  isFirstTime: boolean;
+  completeOnboarding: () => void;
+
+  // ===== QURAN =====
+  bookmarks: Bookmark[];
   collections: Collection[];
   lastRead: LastRead | null;
-
   searchHistory: string[];
 
   allSurahs: any[];
   isDataLoaded: boolean;
-  setAllSurahs: (data: any[]) => void;
 
-  // Search history methods
+  setAllSurahs: (data: any[]) => void;
   addToHistory: (keyword: string) => void;
 
-  // Bookmark methods
   addBookmark: (bookmark: Bookmark) => void;
   removeBookmark: (surahId: number, nomorAyat: number) => void;
   isBookmarked: (surahId: number, nomorAyat: number) => boolean;
 
-  // Collection methods
   createCollection: (name: string) => string;
-  deleteCollection: (collectionId: string) => void;
-  pinCollection: (collectionId: string) => void;
-  unpinCollection: (collectionId: string) => void;
-  addAyatToCollection: (collectionId: string, bookmark: Bookmark) => void;
+  deleteCollection: (id: string) => void;
+  pinCollection: (id: string) => void;
+  unpinCollection: (id: string) => void;
+    // ===== LOCATION (GLOBAL) =====
+  location: {
+    latitude: number;
+    longitude: number;
+  } | null;
+
+  setLocation: (lat: number, lon: number) => void;
+
+  addAyatToCollection: (id: string, bookmark: Bookmark) => void;
   removeAyatFromCollection: (
-    collectionId: string,
+    id: string,
     surahId: number,
-    nomorAyat: number,
+    nomorAyat: number
   ) => void;
+
   isAyatInCollection: (
-    collectionId: string,
+    id: string,
     surahId: number,
-    nomorAyat: number,
+    nomorAyat: number
   ) => boolean;
 
-  // Other methods
   setLastRead: (lastRead: LastRead) => void;
+
+  // ===== PRAYER =====
+  prayerTimes: any;
+  locationName: string;
+  isReminderActive: boolean;
+  isPreNotificationActive: boolean;
+
+  setPrayerData: (times: any, city: string) => void;
+  toggleReminder: () => void;
+  togglePreNotification: () => void;
 }
-export const useQuranStore = create<QuranState>()(
+
+/* ================= IMPLEMENTATION ================= */
+
+export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
-      bookmarks: [],
-      lastRead: null,
-      collections: [],
+      /* ===== ONBOARDING ===== */
+      isFirstTime: true,
+      completeOnboarding: () => set({ isFirstTime: false }),
 
+      /* ===== QURAN ===== */
+      bookmarks: [],
+      collections: [],
+      lastRead: null,
       searchHistory: [],
-      // Search history methods
+      allSurahs: [],
+      isDataLoaded: false,
+
+            /* ===== LOCATION ===== */
+      location: null,
+
+      setLocation: (lat, lon) =>
+        set({
+          location: {
+            latitude: lat,
+            longitude: lon,
+          },
+        }),
+
+      setAllSurahs: (data) => set({ allSurahs: data, isDataLoaded: true }),
+
       addToHistory: (keyword) =>
         set((state) => ({
           searchHistory: [
@@ -98,46 +125,42 @@ export const useQuranStore = create<QuranState>()(
           ].slice(0, 5),
         })),
 
-      allSurahs: [],
-      isDataLoaded: false,
-      setAllSurahs: (data) => set({ allSurahs: data, isDataLoaded: true }),
-      // Bookmark methods
       addBookmark: (newItem) =>
         set((state) => {
-          // Check if already bookmarked
           if (
             state.bookmarks.some(
               (b) =>
                 b.surahId === newItem.surahId &&
-                b.nomorAyat === newItem.nomorAyat,
+                b.nomorAyat === newItem.nomorAyat
             )
-          ) {
-            return state;
-          }
+          ) return state;
+
           return { bookmarks: [...state.bookmarks, newItem] };
         }),
+        
 
       removeBookmark: (surahId, nomorAyat) =>
         set((state) => ({
           bookmarks: state.bookmarks.filter(
-            (b) => !(b.surahId === surahId && b.nomorAyat === nomorAyat),
+            (b) =>
+              !(b.surahId === surahId && b.nomorAyat === nomorAyat)
           ),
         })),
 
-      isBookmarked: (surahId, nomorAyat) => {
-        return get().bookmarks.some(
-          (b) => b.surahId === surahId && b.nomorAyat === nomorAyat,
-        );
-      },
+      isBookmarked: (surahId, nomorAyat) =>
+        get().bookmarks.some(
+          (b) =>
+            b.surahId === surahId &&
+            b.nomorAyat === nomorAyat
+        ),
 
-      // Collection methods
       createCollection: (name) => {
-        const newId = Math.random().toString(36).substr(2, 9);
+        const id = Math.random().toString(36).slice(2);
         set((state) => ({
           collections: [
             ...state.collections,
             {
-              id: newId,
+              id,
               name,
               isPinned: false,
               items: [],
@@ -145,82 +168,95 @@ export const useQuranStore = create<QuranState>()(
             },
           ],
         }));
-        return newId;
+        return id;
       },
 
-      deleteCollection: (collectionId) =>
+      deleteCollection: (id) =>
         set((state) => ({
-          collections: state.collections.filter((c) => c.id !== collectionId),
+          collections: state.collections.filter((c) => c.id !== id),
         })),
 
-      pinCollection: (collectionId) =>
+      pinCollection: (id) =>
         set((state) => ({
           collections: state.collections.map((c) =>
-            c.id === collectionId ? { ...c, isPinned: true } : c,
+            c.id === id ? { ...c, isPinned: true } : c
           ),
         })),
 
-      unpinCollection: (collectionId) =>
+      unpinCollection: (id) =>
         set((state) => ({
           collections: state.collections.map((c) =>
-            c.id === collectionId ? { ...c, isPinned: false } : c,
+            c.id === id ? { ...c, isPinned: false } : c
           ),
         })),
 
-      addAyatToCollection: (collectionId, bookmark) =>
+      addAyatToCollection: (id, bookmark) =>
         set((state) => ({
           collections: state.collections.map((c) => {
-            if (c.id === collectionId) {
-              const items = c.items || [];
-              // Check if already in collection
-              if (
-                items.some(
-                  (item) =>
-                    item.surahId === bookmark.surahId &&
-                    item.nomorAyat === bookmark.nomorAyat,
-                )
-              ) {
-                return c;
-              }
-              return {
-                ...c,
-                items: [...items, bookmark],
-              };
-            }
-            return c;
+            if (c.id !== id) return c;
+
+            if (
+              c.items.some(
+                (i) =>
+                  i.surahId === bookmark.surahId &&
+                  i.nomorAyat === bookmark.nomorAyat
+              )
+            ) return c;
+
+            return { ...c, items: [...c.items, bookmark] };
           }),
         })),
 
-      removeAyatFromCollection: (collectionId, surahId, nomorAyat) =>
+      removeAyatFromCollection: (id, surahId, nomorAyat) =>
         set((state) => ({
-          collections: state.collections.map((c) => {
-            if (c.id === collectionId) {
-              return {
-                ...c,
-                items: (c.items || []).filter(
-                  (item) =>
-                    !(item.surahId === surahId && item.nomorAyat === nomorAyat),
-                ),
-              };
-            }
-            return c;
-          }),
+          collections: state.collections.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  items: c.items.filter(
+                    (i) =>
+                      !(i.surahId === surahId && i.nomorAyat === nomorAyat)
+                  ),
+                }
+              : c
+          ),
         })),
 
-      isAyatInCollection: (collectionId, surahId, nomorAyat) => {
-        const collection = get().collections.find((c) => c.id === collectionId);
+      isAyatInCollection: (id, surahId, nomorAyat) => {
+        const c = get().collections.find((c) => c.id === id);
         return (
-          (collection?.items || []).some(
-            (item) => item.surahId === surahId && item.nomorAyat === nomorAyat,
+          c?.items.some(
+            (i) =>
+              i.surahId === surahId &&
+              i.nomorAyat === nomorAyat
           ) ?? false
         );
       },
 
       setLastRead: (lastRead) => set({ lastRead }),
+
+      /* ===== PRAYER ===== */
+      prayerTimes: null,
+      locationName: "Detecting Location...",
+      isReminderActive: true,
+      isPreNotificationActive: false,
+
+      setPrayerData: (times, city) =>
+        set({ prayerTimes: times, locationName: city }),
+
+      toggleReminder: () =>
+        set((state) => ({
+          isReminderActive: !state.isReminderActive,
+        })),
+
+      togglePreNotification: () =>
+        set((state) => ({
+          isPreNotificationActive: !state.isPreNotificationActive,
+        })),
     }),
     {
-      name: "quran-storage",
+      name: "app-storage", // 🔥 satu storage saja
       storage: createJSONStorage(() => AsyncStorage),
-    },
-  ),
+    }
+  )
 );

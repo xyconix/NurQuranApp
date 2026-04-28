@@ -16,7 +16,7 @@ import {
   Pin,
   ChevronRight,
 } from "lucide-react-native";
-import { useQuranStore } from "../store/useAppStore";
+import { useAppStore } from "../store/useAppStore";
 import { useNavigation } from "@react-navigation/native";
 import Header from "./component/Header";
 import BottomTabBar from "../components/MainTabNavigator";
@@ -55,7 +55,7 @@ const BookmarkScreen = () => {
     pinCollection,
     unpinCollection,
     createCollection,
-  } = useQuranStore();
+  } = useAppStore();
 
   const pinnedCollections = collections.filter((c) => c.isPinned);
   const unpinnedCollections = collections.filter((c) => !c.isPinned);

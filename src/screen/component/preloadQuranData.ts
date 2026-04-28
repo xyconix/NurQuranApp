@@ -1,8 +1,8 @@
-import { useQuranStore } from "../../store/useAppStore";
+import { useAppStore } from "../../store/useAppStore";
 import axios from "axios";
 
 export const preloadQuranData = async () => {
-  const { isDataLoaded, setAllSurahs } = useQuranStore.getState();
+  const { isDataLoaded, setAllSurahs } = useAppStore.getState();
   if (isDataLoaded) return; // Jangan download ulang jika sudah ada
 
   try {
