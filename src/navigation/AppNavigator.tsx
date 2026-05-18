@@ -2,7 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screen/homeScreen";
 import PrayerTimeScreen from "../screen/prayerTimeScreen";
-import FastingScreen from "../screen/fastingScreen";
+import FastingScreen from "../screen/FastingScreen";
 import BookmarkScreen from "../screen/bookmarkScreen";
 import CollectionDetailScreen from "../screen/component/collectionDetailScreen";
 import SurahDetail from "../screen/component/surahDetail";
