@@ -4,7 +4,7 @@ import {
   Compass,
   Clock,
   Calendar,
-  Disc,
+
   Bookmark,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -41,7 +41,6 @@ const TABS: TabItem[] = [
   { key: "home", label: "Home", icon: Book, screen: "HomeScreen" },
   { key: "prayer", label: "Prayer", icon: Clock, screen: "PrayerTimesScreen" },
   { key: "fasting", label: "Fasting", icon: Calendar, screen: "FastingScreen" },
-  { key: "tasbih", label: "Tasbih", icon: Disc, screen: "TasbihScreen" },
   {
     key: "bookmark",
     label: "Bookmark",

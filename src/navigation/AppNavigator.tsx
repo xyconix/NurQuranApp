@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screen/homeScreen";
 import PrayerTimeScreen from "../screen/prayerTimeScreen";
 import FastingScreen from "../screen/fastingScreen";
-import TasbihScreen from "../screen/tasbihScreen";
 import BookmarkScreen from "../screen/bookmarkScreen";
 import CollectionDetailScreen from "../screen/component/collectionDetailScreen";
 import SurahDetail from "../screen/component/surahDetail";
@@ -36,7 +35,6 @@ const SCREENS: Array<{
 
   { name: "PrayerTimesScreen", component: PrayerTimeScreen },
   { name: "FastingScreen", component: FastingScreen },
-  { name: "TasbihScreen", component: TasbihScreen },
   { name: "BookmarkScreen", component: BookmarkScreen },
   { name: "CollectionDetail", component: CollectionDetailScreen },
   { name: "SurahDetail", component: SurahDetail },
