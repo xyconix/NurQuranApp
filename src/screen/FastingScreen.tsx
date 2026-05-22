@@ -10,32 +10,38 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MainTabNavigator from "../components/MainTabNavigator";
+
 
 import { X } from "lucide-react-native";
 
 interface CalendarDay {
   date: string;
-
   day: number;
-
+  month: number;
+  year: number;
   hijriDay: string;
-
   hijriMonth: string;
-
   hijriMonthNumber: number;
-
   hijriYear: string;
+  dayOfWeek: number; // 0 = Minggu, 1 = Senin, dst
 }
 
 interface IslamicEvent {
   label: string;
-
   description: string;
-
   hijriDate: string;
 }
 
-interface SelectedEvent extends IslamicEvent {
+interface FastingEvent {
+  label: string;
+  color: string;
+  description: string;
+}
+
+interface SelectedEvent {
+  islamicEvent: IslamicEvent | null;
+  fastingEvent: FastingEvent | null;
   gregorianDate: string;
 }
 
@@ -54,168 +60,132 @@ const months = [
   "Desember",
 ];
 
-const weekdays = [
-  "Min",
-  "Sen",
-  "Sel",
-  "Rab",
-  "Kam",
-  "Jum",
-  "Sab",
-];
+const weekdays = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 const FastingScreen = () => {
-  const currentYear =
-    new Date().getFullYear();
-
+  const defaultYear = new Date().getFullYear();
   const today = new Date();
 
-  const [selectedMonth, setSelectedMonth] =
-    useState(today.getMonth());
-
-  const [calendarData, setCalendarData] =
-    useState<Record<number, CalendarDay[]>>(
-      {},
-    );
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [selectedEvent, setSelectedEvent] =
-    useState<SelectedEvent | null>(null);
-
-  const [showModal, setShowModal] =
-    useState(false);
+  const [selectedYear, setSelectedYear] = useState(defaultYear);
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
+  const [calendarData, setCalendarData] = useState<
+    Record<number, CalendarDay[]>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<SelectedEvent | null>(
+    null,
+  );
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchCalendar();
-  }, []);
+  }, [selectedYear]);
 
   const fetchCalendar = async () => {
     try {
       setLoading(true);
-
-      const allMonths: Record<
-        number,
-        CalendarDay[]
-      > = {};
+      const allMonths: Record<number, CalendarDay[]> = {};
 
       await Promise.all(
-        Array.from(
-          { length: 12 },
-          async (_, monthIndex) => {
+        Array.from({ length: 12 }, async (_, monthIndex) => {
+          try {
             const response = await fetch(
-              `https://api.aladhan.com/v1/gToHCalendar/${
-                monthIndex + 1
-              }/${currentYear}`,
+              `https://api.aladhan.com/v1/gToHCalendar/${monthIndex + 1}/${selectedYear}`,
             );
 
-            const result =
-              await response.json();
+            const result = await response.json();
 
-            const days: CalendarDay[] =
-              result.data.map((item: any) => ({
-                date:
-                  item.gregorian.date,
+            const days: CalendarDay[] = result.data.map((item: any) => {
+              const dateStr = item.gregorian.date;
+              const [day, month, year] = dateStr.split("-").map(Number);
+              const dateObj = new Date(year, month - 1, day);
 
-                day: Number(
-                  item.gregorian.day,
-                ),
-
-                hijriDay:
-                  item.hijri.day,
-
-                hijriMonth:
-                  item.hijri.month.en,
-
-                hijriMonthNumber:
-                  item.hijri.month.number,
-
-                hijriYear:
-                  item.hijri.year,
-              }));
+              return {
+                date: dateStr,
+                day: day,
+                month: month,
+                year: year,
+                dayOfWeek: dateObj.getDay(), // 0 = Minggu, 1 = Senin, dst
+                hijriDay: item.hijri.day,
+                hijriMonth: item.hijri.month.en,
+                hijriMonthNumber: item.hijri.month.number,
+                hijriYear: item.hijri.year,
+              };
+            });
 
             allMonths[monthIndex] = days;
-          },
-        ),
+          } catch (err) {
+            console.log(`Error fetching month ${monthIndex + 1}:`, err);
+          }
+        }),
       );
 
       setCalendarData(allMonths);
     } catch (error) {
-      console.log(error);
+      console.log("Error fetching calendar:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const getFastingEvent = (
-    gregorianDate: string,
+    dayOfWeek: number,
     hijriDay: string,
     hijriMonthNumber: number,
-  ) => {
-    const date =
-      new Date(gregorianDate);
+  ): FastingEvent | null => {
+    // Catatan: dayOfWeek = 0 (Minggu), 1 (Senin), 2 (Selasa), 3 (Rabu), 4 (Kamis), 5 (Jumat), 6 (Sabtu)
 
-    const day =
-      date.getDay();
-
-    // SENIN
-    if (day === 1) {
+    // PUASA SENIN
+    if (dayOfWeek === 1) {
       return {
         label: "Senin",
         color: "#3B82F6",
+        description: "Puasa Sunnah Senin",
       };
     }
 
-    // KAMIS
-    if (day === 4) {
+    // PUASA KAMIS
+    if (dayOfWeek === 4) {
       return {
         label: "Kamis",
         color: "#3B82F6",
+        description: "Puasa Sunnah Kamis",
       };
     }
 
-    // AYYAMUL BITH
-    if (
-      ["13", "14", "15"].includes(
-        hijriDay,
-      )
-    ) {
+    // AYYAMUL BIDH (13, 14, 15 bulan Hijri)
+    if (["13", "14", "15"].includes(hijriDay)) {
       return {
         label: "Ayyamul",
         color: "#10B981",
+        description: "Puasa Ayyamul Bidh (Hari Putih)",
       };
     }
 
-    // ASYURA
-    if (
-      hijriMonthNumber === 1 &&
-      hijriDay === "10"
-    ) {
+    // ASYURA (10 Muharram)
+    if (hijriMonthNumber === 1 && hijriDay === "10") {
       return {
         label: "Asyura",
         color: "#EF4444",
+        description: "Puasa Hari Asyura - Sangat Utama",
       };
     }
 
-    // ARAFAH
-    if (
-      hijriMonthNumber === 12 &&
-      hijriDay === "9"
-    ) {
+    // ARAFAH (9 Dzulhijjah)
+    if (hijriMonthNumber === 12 && hijriDay === "9") {
       return {
         label: "Arafah",
         color: "#EF4444",
+        description: "Puasa Hari Arafah - Sangat Utama",
       };
     }
 
-    // RAMADAN
-    if (
-      hijriMonthNumber === 9
-    ) {
+    // RAMADAN (Seluruh bulan Ramadan)
+    if (hijriMonthNumber === 9) {
       return {
         label: "Ramadan",
         color: "#FBBF24",
+        description: "Puasa Wajib Ramadan",
       };
     }
 
@@ -226,201 +196,119 @@ const FastingScreen = () => {
     hijriDay: string,
     hijriMonthNumber: number,
   ): IslamicEvent | null => {
-    // TAHUN BARU ISLAM
-    if (
-      hijriMonthNumber === 1 &&
-      hijriDay === "1"
-    ) {
+    // CATATAN: Semua event Islam berasal dari data Hijri API (otomatis)
+    // Data Hijri dikembalikan dari Aladhan API untuk setiap tanggal Gregorian
+    // Bekerja untuk semua tahun tanpa perlu hardcode
+
+    // TAHUN BARU ISLAM (1 Muharram)
+    if (hijriMonthNumber === 1 && hijriDay === "1") {
       return {
-        label:
-          "Tahun Baru Islam",
-
-        description:
-          "1 Muharram - Tahun Baru Hijriah",
-
-        hijriDate:
-          "1 Muharram",
+        label: "Tahun Baru Islam",
+        description: "1 Muharram - Tahun Baru Hijriah",
+        hijriDate: "1 Muharram",
       };
     }
 
-    // ASYURA
-    if (
-      hijriMonthNumber === 1 &&
-      hijriDay === "10"
-    ) {
+    // ASYURA (10 Muharram)
+    if (hijriMonthNumber === 1 && hijriDay === "10") {
       return {
         label: "Hari Asyura",
-
         description:
-          "10 Muharram",
-
-        hijriDate:
-          "10 Muharram",
+          "10 Muharram - Hari Raya untuk kaum Yahudi dan kami diperintahkan berpuasa",
+        hijriDate: "10 Muharram",
       };
     }
 
-    // MAULID NABI
-    if (
-      hijriMonthNumber === 3 &&
-      hijriDay === "12"
-    ) {
+    // MAULID NABI (12 Rabiul Awal)
+    if (hijriMonthNumber === 3 && hijriDay === "12") {
       return {
-        label:
-          "Maulid Nabi",
-
-        description:
-          "Kelahiran Nabi Muhammad SAW",
-
-        hijriDate:
-          "12 Rabiul Awal",
+        label: "Maulid Nabi Muhammad",
+        description: "Kelahiran Nabi Muhammad SAW - 12 Rabiul Awal",
+        hijriDate: "12 Rabiul Awal",
       };
     }
 
-    // ISRA MIRAJ
-    if (
-      hijriMonthNumber === 7 &&
-      hijriDay === "27"
-    ) {
+    // ISRA MIRAJ (27 Rajab)
+    if (hijriMonthNumber === 7 && hijriDay === "27") {
       return {
-        label:
-          "Isra Miraj",
-
-        description:
-          "Perjalanan Isra Miraj Nabi Muhammad SAW",
-
-        hijriDate:
-          "27 Rajab",
+        label: "Isra Miraj",
+        description: "Perjalanan Isra Miraj Nabi Muhammad SAW - 27 Rajab",
+        hijriDate: "27 Rajab",
       };
     }
 
-    // NISFU SYABAN
-    if (
-      hijriMonthNumber === 8 &&
-      hijriDay === "15"
-    ) {
+    // NISFU SYABAN (15 Syaban)
+    if (hijriMonthNumber === 8 && hijriDay === "15") {
       return {
-        label:
-          "Nisfu Syaban",
-
-        description:
-          "Malam Nisfu Syaban",
-
-        hijriDate:
-          "15 Syaban",
+        label: "Nisfu Syaban",
+        description: "Malam Nisfu Syaban - Malam Puasa Sunnah - 15 Syaban",
+        hijriDate: "15 Syaban",
       };
     }
 
-    // AWAL RAMADAN
-    if (
-      hijriMonthNumber === 9 &&
-      hijriDay === "1"
-    ) {
+    // AWAL RAMADAN (1 Ramadan)
+    if (hijriMonthNumber === 9 && hijriDay === "1") {
       return {
-        label:
-          "Awal Ramadan",
-
-        description:
-          "Awal bulan puasa Ramadan",
-
-        hijriDate:
-          "1 Ramadan",
+        label: "Awal Ramadan",
+        description: "Awal bulan puasa Ramadan - 1 Ramadan",
+        hijriDate: "1 Ramadan",
       };
     }
 
-    // NUZULUL QURAN
-    if (
-      hijriMonthNumber === 9 &&
-      hijriDay === "17"
-    ) {
+    // NUZULUL QURAN (17 Ramadan)
+    if (hijriMonthNumber === 9 && hijriDay === "17") {
       return {
-        label:
-          "Nuzulul Quran",
-
-        description:
-          "Turunnya Al-Quran",
-
-        hijriDate:
-          "17 Ramadan",
+        label: "Nuzulul Quran",
+        description: "Turunnya Al-Quran kepada Nabi Muhammad SAW - 17 Ramadan",
+        hijriDate: "17 Ramadan",
       };
     }
 
-    // IDUL FITRI
-    if (
-      hijriMonthNumber === 10 &&
-      hijriDay === "1"
-    ) {
+    // LAILATUL QADAR (27 Ramadan - hari paling utama)
+    if (hijriMonthNumber === 9 && hijriDay === "27") {
       return {
-        label:
-          "Idul Fitri",
-
-        description:
-          "Hari Raya Idul Fitri",
-
-        hijriDate:
-          "1 Syawal",
+        label: "Lailatul Qadar",
+        description: "Malam Kemuliaan - Malam turunnya Al-Quran - 27 Ramadan",
+        hijriDate: "27 Ramadan",
       };
     }
 
-    // IDUL ADHA
-    if (
-      hijriMonthNumber === 12 &&
-      hijriDay === "10"
-    ) {
+    // IDUL FITRI (1 Syawal)
+    if (hijriMonthNumber === 10 && hijriDay === "1") {
       return {
-        label:
-          "Idul Adha",
+        label: "Idul Fitri",
+        description: "Hari Raya Idul Fitri - Lebaran - 1 Syawal",
+        hijriDate: "1 Syawal",
+      };
+    }
 
-        description:
-          "Hari Raya Idul Adha",
-
-        hijriDate:
-          "10 Dzulhijjah",
+    // IDUL ADHA (10 Dzulhijjah)
+    if (hijriMonthNumber === 12 && hijriDay === "10") {
+      return {
+        label: "Idul Adha",
+        description: "Hari Raya Idul Adha - Hari Raya Kurban - 10 Dzulhijjah",
+        hijriDate: "10 Dzulhijjah",
       };
     }
 
     return null;
   };
 
-  const getFirstDay = (
-    monthIndex: number,
-  ) => {
-    return new Date(
-      currentYear,
-      monthIndex,
-      1,
-    ).getDay();
+  const getFirstDay = (monthIndex: number) => {
+    return new Date(selectedYear, monthIndex, 1).getDay();
   };
 
-  const hexToRGBA = (
-    hex: string,
-    opacity: number,
-  ) => {
-    const r = parseInt(
-      hex.slice(1, 3),
-      16,
-    );
-
-    const g = parseInt(
-      hex.slice(3, 5),
-      16,
-    );
-
-    const b = parseInt(
-      hex.slice(5, 7),
-      16,
-    );
-
+  const hexToRGBA = (hex: string, opacity: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r},${g},${b},${opacity})`;
   };
 
   const renderMonth = () => {
-    const days =
-      calendarData[selectedMonth] || [];
-
+    const days = calendarData[selectedMonth] || [];
     const cells = [];
-
-    const firstDay =
-      getFirstDay(selectedMonth);
+    const firstDay = getFirstDay(selectedMonth);
 
     // EMPTY CELL
     for (let i = 0; i < firstDay; i++) {
@@ -430,8 +318,7 @@ const FastingScreen = () => {
           style={[
             styles.dayCell,
             {
-              backgroundColor:
-                "transparent",
+              backgroundColor: "transparent",
             },
           ]}
         />,
@@ -440,23 +327,21 @@ const FastingScreen = () => {
 
     // DAY CELL
     for (const item of days) {
-      const fastingEvent =
-        getFastingEvent(
-          item.date,
-          item.hijriDay,
-          item.hijriMonthNumber,
-        );
+      const fastingEvent = getFastingEvent(
+        item.dayOfWeek,
+        item.hijriDay,
+        item.hijriMonthNumber,
+      );
 
-      const islamicEvent =
-        getIslamicEvent(
-          item.hijriDay,
-          item.hijriMonthNumber,
-        );
+      const islamicEvent = getIslamicEvent(
+        item.hijriDay,
+        item.hijriMonthNumber,
+      );
 
       const isToday =
         item.day === today.getDate() &&
-        selectedMonth ===
-          today.getMonth();
+        selectedMonth === today.getMonth() &&
+        selectedYear === today.getFullYear();
 
       cells.push(
         <TouchableOpacity
@@ -466,28 +351,21 @@ const FastingScreen = () => {
             styles.dayCell,
 
             fastingEvent && {
-              backgroundColor:
-                hexToRGBA(
-                  fastingEvent.color,
-                  0.18,
-                ),
+              backgroundColor: hexToRGBA(fastingEvent.color, 0.18),
 
               borderLeftWidth: 3,
 
-              borderLeftColor:
-                fastingEvent.color,
+              borderLeftColor: fastingEvent.color,
             },
 
-            isToday &&
-              styles.todayCell,
+            isToday && styles.todayCell,
           ]}
           onPress={() => {
-            if (islamicEvent) {
+            if (islamicEvent || fastingEvent) {
               setSelectedEvent({
-                ...islamicEvent,
-
-                gregorianDate:
-                  item.date,
+                islamicEvent: islamicEvent,
+                fastingEvent: fastingEvent,
+                gregorianDate: item.date,
               });
 
               setShowModal(true);
@@ -495,9 +373,7 @@ const FastingScreen = () => {
           }}
         >
           {/* DOT EVENT */}
-          {islamicEvent && (
-            <View style={styles.dot} />
-          )}
+          {islamicEvent && <View style={styles.dot} />}
 
           {/* DAY */}
           <Text
@@ -505,8 +381,7 @@ const FastingScreen = () => {
               styles.dayNumber,
 
               fastingEvent && {
-                color:
-                  fastingEvent.color,
+                color: fastingEvent.color,
               },
             ]}
           >
@@ -514,9 +389,7 @@ const FastingScreen = () => {
           </Text>
 
           {/* HIJRI */}
-          <Text style={styles.hijriText}>
-            {item.hijriDay}
-          </Text>
+          <Text style={styles.hijriText}>{item.hijriDay}</Text>
 
           {/* LABEL */}
           {fastingEvent && (
@@ -526,8 +399,7 @@ const FastingScreen = () => {
                 styles.eventLabel,
 
                 {
-                  color:
-                    fastingEvent.color,
+                  color: fastingEvent.color,
                 },
               ]}
             >
@@ -544,64 +416,60 @@ const FastingScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.loading}>
-        <ActivityIndicator
-          size="large"
-          color="#A855F7"
-        />
+        <ActivityIndicator size="large" color="#A855F7" />
 
-        <Text style={styles.loadingText}>
-          Memuat Kalender Islam...
-        </Text>
+        <Text style={styles.loadingText}>Memuat Kalender Islam...</Text>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={
-          false
-        }
-      >
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.title}>
-            Kalender Islam
-          </Text>
+          <Text style={styles.title}>Kalender Islam</Text>
 
-          <Text style={styles.subtitle}>
-            Kalender Puasa & Hari Islam
-          </Text>
+          <Text style={styles.subtitle}>Kalender Puasa & Hari Islam</Text>
+        </View>
+
+        {/* YEAR SELECTOR */}
+        <View style={styles.yearSelector}>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedYear(selectedYear - 1);
+              setSelectedMonth(0);
+            }}
+          >
+            <Text style={styles.navButton}>‹</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.yearTitle}>{selectedYear}</Text>
+
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedYear(selectedYear + 1);
+              setSelectedMonth(0);
+            }}
+          >
+            <Text style={styles.navButton}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* LEGEND */}
         <View style={styles.legendContainer}>
-          <Legend
-            color="#3B82F6"
-            label="Senin/Kamis"
-          />
+          <Legend color="#3B82F6" label="Senin & Kamis" />
 
-          <Legend
-            color="#10B981"
-            label="Ayyamul Bidh"
-          />
+          <Legend color="#10B981" label="Ayyamul Bidh" />
 
-          <Legend
-            color="#EF4444"
-            label="Asyura"
-          />
+          <Legend color="#EF4444" label="Asyura & Arafah" />
 
-          <Legend
-            color="#FBBF24"
-            label="Ramadan"
-          />
+          <Legend color="#FBBF24" label="Ramadan" />
 
           <View style={styles.legendItem}>
             <View style={styles.whiteDot} />
 
-            <Text style={styles.legendText}>
-              Hari Islam
-            </Text>
+            <Text style={styles.legendText}>Hari Islam Penting</Text>
           </View>
         </View>
 
@@ -610,145 +478,131 @@ const FastingScreen = () => {
           <TouchableOpacity
             onPress={() => {
               if (selectedMonth > 0) {
-                setSelectedMonth(
-                  selectedMonth - 1,
-                );
+                setSelectedMonth(selectedMonth - 1);
               }
             }}
           >
-            <Text style={styles.navButton}>
-              ‹
-            </Text>
+            <Text style={styles.navButton}>‹</Text>
           </TouchableOpacity>
 
           <Text style={styles.monthTitle}>
-            {months[selectedMonth]}{" "}
-            {currentYear}
+            {months[selectedMonth]} {selectedYear}
           </Text>
 
           <TouchableOpacity
             onPress={() => {
               if (selectedMonth < 11) {
-                setSelectedMonth(
-                  selectedMonth + 1,
-                );
+                setSelectedMonth(selectedMonth + 1);
               }
             }}
           >
-            <Text style={styles.navButton}>
-              ›
-            </Text>
+            <Text style={styles.navButton}>›</Text>
           </TouchableOpacity>
         </View>
 
         {/* WEEK */}
         <View style={styles.weekRow}>
           {weekdays.map((day) => (
-            <Text
-              key={day}
-              style={styles.weekText}
-            >
+            <Text key={day} style={styles.weekText}>
               {day}
             </Text>
           ))}
         </View>
 
         {/* CALENDAR */}
-        <View style={styles.grid}>
-          {renderMonth()}
-        </View>
+        <View style={styles.grid}>{renderMonth()}</View>
       </ScrollView>
 
       {/* MODAL */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={showModal}
-      >
+      <Modal transparent animationType="fade" visible={showModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() =>
-                setShowModal(false)
-              }
+              onPress={() => setShowModal(false)}
             >
-              <X
-                size={22}
-                color="white"
-              />
+              <X size={22} color="white" />
             </TouchableOpacity>
 
             {selectedEvent && (
               <>
-                <View
-                  style={styles.modalDot}
-                />
+                {/* ISLAMIC EVENT */}
+                {selectedEvent.islamicEvent && (
+                  <>
+                    <View style={styles.modalDot} />
 
-                <Text
-                  style={styles.modalTitle}
-                >
-                  {selectedEvent.label}
-                </Text>
+                    <Text style={styles.modalTitle}>
+                      {selectedEvent.islamicEvent.label}
+                    </Text>
 
-                <Text
-                  style={styles.modalHijri}
-                >
-                  {
-                    selectedEvent.hijriDate
-                  }
-                </Text>
+                    <Text style={styles.modalHijri}>
+                      {selectedEvent.islamicEvent.hijriDate}
+                    </Text>
 
-                <Text
-                  style={styles.modalDesc}
-                >
-                  {
-                    selectedEvent.description
-                  }
-                </Text>
+                    <Text style={styles.modalDesc}>
+                      {selectedEvent.islamicEvent.description}
+                    </Text>
+                  </>
+                )}
 
-                <Text
-                  style={
-                    styles.modalGregorian
-                  }
-                >
-                  {
-                    selectedEvent.gregorianDate
-                  }
+                {/* FASTING EVENT */}
+                {selectedEvent.fastingEvent && (
+                  <>
+                    {!selectedEvent.islamicEvent && (
+                      <View
+                        style={[
+                          styles.modalDot,
+                          {
+                            backgroundColor: selectedEvent.fastingEvent.color,
+                          },
+                        ]}
+                      />
+                    )}
+
+                    {selectedEvent.islamicEvent && (
+                      <Text style={styles.modalDivider}>
+                        ──────────────────
+                      </Text>
+                    )}
+
+                    <Text
+                      style={[
+                        styles.modalTitle,
+                        {
+                          color: selectedEvent.fastingEvent.color,
+                        },
+                      ]}
+                    >
+                      {selectedEvent.fastingEvent.label}
+                    </Text>
+
+                    <Text style={styles.modalDesc}>
+                      {selectedEvent.fastingEvent.description}
+                    </Text>
+                  </>
+                )}
+
+                <Text style={styles.modalGregorian}>
+                  {selectedEvent.gregorianDate}
                 </Text>
 
                 <TouchableOpacity
-                  style={
-                    styles.closeModalButton
-                  }
-                  onPress={() =>
-                    setShowModal(false)
-                  }
+                  style={styles.closeModalButton}
+                  onPress={() => setShowModal(false)}
                 >
-                  <Text
-                    style={
-                      styles.closeModalText
-                    }
-                  >
-                    Tutup
-                  </Text>
+                  <Text style={styles.closeModalText}>Tutup</Text>
                 </TouchableOpacity>
               </>
             )}
           </View>
         </View>
       </Modal>
+      <MainTabNavigator active="fasting" />
     </SafeAreaView>
   );
 };
 
-const Legend = ({
-  color,
-  label,
-}: {
-  color: string;
-  label: string;
-}) => (
+const Legend = ({ color, label }: { color: string; label: string }) => (
   <View style={styles.legendItem}>
     <View
       style={[
@@ -759,9 +613,7 @@ const Legend = ({
       ]}
     />
 
-    <Text style={styles.legendText}>
-      {label}
-    </Text>
+    <Text style={styles.legendText}>{label}</Text>
   </View>
 );
 
@@ -798,6 +650,20 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#94A3B8",
     marginTop: 6,
+  },
+
+  yearSelector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+
+  yearTitle: {
+    color: "#A855F7",
+    fontSize: 20,
+    fontWeight: "bold",
   },
 
   legendContainer: {
@@ -923,8 +789,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor:
-      "rgba(0,0,0,0.75)",
+    backgroundColor: "rgba(0,0,0,0.75)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -987,5 +852,12 @@ const styles = StyleSheet.create({
   closeModalText: {
     color: "white",
     fontWeight: "bold",
+  },
+
+  modalDivider: {
+    color: "#CBD5E1",
+    marginVertical: 10,
+    textAlign: "center",
+    fontSize: 12,
   },
 });

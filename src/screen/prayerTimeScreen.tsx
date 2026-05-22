@@ -14,6 +14,8 @@ import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
 import { useAppStore } from "../store/useAppStore";
 import { Settings, Bell, Clock } from "lucide-react-native";
+import MainTabNavigator from "../components/MainTabNavigator";
+
 
 const PrayerTimesScreen = () => {
   const {
@@ -390,6 +392,7 @@ const PrayerTimesScreen = () => {
           </View>
         </View>
       </ScrollView>
+      <MainTabNavigator active="prayer" />
     </SafeAreaView>
   );
 };

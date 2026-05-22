@@ -1,10 +1,12 @@
+import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+// PENTING: Menggunakan insets untuk mengambil tinggi navigasi bawah secara dinamis
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Book,
   Compass,
   Clock,
   Calendar,
-
   Bookmark,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -51,6 +53,8 @@ const TABS: TabItem[] = [
 
 const BottomTabBar = ({ active }: BottomTabBarProps) => {
   const navigation = useNavigation<TabNavigationProp>();
+  // Ambil data area aman (insets)
+  const insets = useSafeAreaInsets();
 
   const handleTabPress = (tabKey: TabKey) => {
     const tab = TABS.find((t) => t.key === tabKey);
@@ -60,7 +64,16 @@ const BottomTabBar = ({ active }: BottomTabBarProps) => {
   };
 
   return (
-    <View style={styles.container}>
+    /* 
+      Di sini kita hapus position absolute dan bottom 0 bawaan style, 
+      lalu tambahkan paddingBottom dinamis mengikuti tinggi bar navigasi HP.
+    */
+    <View 
+      style={[
+        styles.container, 
+        { paddingBottom: insets.bottom > 0 ? insets.bottom : PADDING_VERTICAL }
+      ]}
+    >
       {TABS.map((tab) => {
         const isActive = active === tab.key;
         const Icon = tab.icon;
@@ -87,20 +100,21 @@ const BottomTabBar = ({ active }: BottomTabBarProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    bottom: 0,
+    // HAPUS position: "absolute" dan bottom: 0 agar tidak menabrak bar navigasi asli HP
     width: "100%",
     backgroundColor: BACKGROUND_COLOR,
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: PADDING_VERTICAL,
+    paddingTop: PADDING_VERTICAL, // Tetap gunakan padding atas yang konsisten
   },
   tabItem: {
     alignItems: "center",
+    justifyContent: "center",
+    flex: 1, // Membagi rata ruang antar tab
   },
   activeTabText: {
     fontSize: 10,
-    marginTop: 1,
+    marginTop: 2,
     fontWeight: "bold",
     color: ACTIVE_COLOR,
   },
