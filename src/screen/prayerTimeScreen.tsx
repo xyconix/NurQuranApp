@@ -8,6 +8,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  StatusBar,
+  Platform,
 } from "react-native";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -15,7 +17,6 @@ import { SchedulableTriggerInputTypes } from "expo-notifications";
 import { useAppStore } from "../store/useAppStore";
 import { Settings, Bell, Clock } from "lucide-react-native";
 import MainTabNavigator from "../components/MainTabNavigator";
-
 
 const PrayerTimesScreen = () => {
   const {
@@ -273,6 +274,13 @@ const PrayerTimesScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* StatusBar Component - Menampilkan status bar dengan styling */}
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#0B1535" 
+        translucent={false}
+      />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Prayer Times</Text>
         <TouchableOpacity style={styles.iconButton} onPress={getPrayer}>
@@ -398,7 +406,11 @@ const PrayerTimesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1535" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#0B1535",
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -3,16 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  SafeAreaView,
 } from "react-native";
+// Gunakan SafeAreaView dari react-native-safe-area-context agar aman di Android & iOS
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Search, Menu } from "lucide-react-native";
 import { AnimatedQuran } from "../components/SurahAssets";
-import Animated, { FadeInDown } from "react-native-reanimated";
-// Import semua komponen tab dari HomeTabs
 import { SurahList, ParaList } from "../components/HomeTabs";
 import MainTabNavigator from "../components/MainTabNavigator";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -23,7 +20,7 @@ import Header from "./component/Header";
 import { preloadQuranData } from "./component/preloadQuranData";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-// Fetching data dari API Equran.id
+
 const fetchSurahs = async () => {
   const response = await axios.get("https://equran.id/api/v2/surat");
   return response.data.data;
@@ -33,24 +30,22 @@ const HomeScreen = () => {
   useEffect(() => {
     preloadQuranData();
   }, []);
-  // State harus ada di dalam komponen
+
   const [activeTab, setActiveTab] = useState("Surah");
   const navigation = useNavigation<NavigationProp>();
   const { lastRead } = useAppStore();
 
-  const { data: surahs, isLoading } = useQuery({
+  const { data: surahs } = useQuery({
     queryKey: ["surahs"],
     queryFn: fetchSurahs,
   });
 
-  // Fungsi render konten berdasarkan tab
   const renderContent = () => {
     switch (activeTab) {
       case "Surah":
         return <SurahList surahs={surahs || []} />;
       case "Para":
         return <ParaList />;
-
       default:
         return <SurahList surahs={surahs || []} />;
     }
@@ -66,7 +61,11 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    /* 
+      edges={["top"]} memastikan hanya bagian atas (bar notifikasi) 
+      yang diberi padding aman, sedangkan bagian bawah mengikuti Tab Navigator.
+    */
+    <SafeAreaView edges={["top"]} style={styles.container}>
       {/* Header */}
       <Header title="NurQuran" />
 
@@ -118,14 +117,19 @@ const HomeScreen = () => {
       </View>
 
       {/* Content Area */}
-      <View style={{ flex: 1 }}>{renderContent()}</View>
+      <View style={styles.contentArea}>{renderContent()}</View>
+
+      {/* Navigation Bawah */}
       <MainTabNavigator active="home" />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1535" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#0B1535" 
+  },
   lastReadLabelContainer: {
     backgroundColor: "#A44AFF",
     alignSelf: "flex-start",
@@ -176,7 +180,7 @@ const styles = StyleSheet.create({
   activeTab: { borderBottomWidth: 3, borderBottomColor: "#A44AFF" },
   tabText: { color: "#8D92A3", fontWeight: "bold" },
   activeTabText: { color: "white" },
-  // Hapus listContent karena sudah di-handle di dalam komponen tab masing-masing
+  contentArea: { flex: 1 },
 });
 
 export default HomeScreen;

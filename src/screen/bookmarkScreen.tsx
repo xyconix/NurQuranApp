@@ -3,10 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  StatusBar,
+  Platform,
+  ScrollView,
 } from "react-native";
 import {
   Folder,
@@ -42,7 +44,7 @@ type BookmarkItem = {
   surahId: number;
   nomorAyat: number;
   surahName: string;
-  ayahText: string;
+  ayahText?: string;
 };
 
 const BookmarkScreen = () => {
@@ -60,21 +62,32 @@ const BookmarkScreen = () => {
   const pinnedCollections = collections.filter((c) => c.isPinned);
   const unpinnedCollections = collections.filter((c) => !c.isPinned);
 
-  // Collection handlers
   const handleAddCollection = () => {
-    Alert.prompt(
-      "Create Collection",
-      "Enter collection name:",
-      (text) => {
-        if (text?.trim()) {
-          createCollection(text);
-          Alert.alert("Success", `Collection "${text}" created!`);
-        }
-      },
-      "plain-text",
-      "",
-      "default",
-    );
+    if (Platform.OS === "android") {
+      Alert.alert("Create Collection", "Collection name will be auto generated.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Create",
+          onPress: () => {
+            const collectionName = `Collection ${collections.length + 1}`;
+            createCollection(collectionName);
+            Alert.alert("Success", `Collection "${collectionName}" created!`);
+          },
+        },
+      ]);
+    } else {
+      Alert.prompt(
+        "Create Collection",
+        "Enter collection name:",
+        (text) => {
+          if (text?.trim()) {
+            createCollection(text);
+            Alert.alert("Success", `Collection "${text}" created!`);
+          }
+        },
+        "plain-text",
+      );
+    }
   };
 
   const handleLongPressCollection = (item: Collection) => {
@@ -87,69 +100,28 @@ const BookmarkScreen = () => {
       {
         text: "Hapus",
         style: "destructive",
-        onPress: () => deleteCollection(item.id),
-      },
-      { text: "Batal", style: "cancel" },
-    ]);
-  };
-
-  const handleCollectionOptions = (
-    collectionId: string,
-    collectionName: string,
-  ) => {
-    Alert.alert(collectionName, "What would you like to do?", [
-      {
-        text: "View Ayahs",
-        onPress: () =>
-          navigation.navigate("CollectionDetail", {
-            collectionId,
-            collectionName,
-          }),
-      },
-      {
-        text: pinnedCollections.some((c) => c.id === collectionId)
-          ? "Unpin"
-          : "Pin",
-        onPress: () => {
-          if (pinnedCollections.some((c) => c.id === collectionId)) {
-            unpinCollection(collectionId);
-          } else {
-            pinCollection(collectionId);
-          }
-        },
-      },
-      {
-        text: "Delete",
         onPress: () => {
           Alert.alert(
-            "Delete Collection",
-            `Are you sure you want to delete "${collectionName}"? This cannot be undone.`,
+            "Konfirmasi Hapus",
+            `Apakah Anda yakin ingin menghapus koleksi "${item.name}"?`,
             [
+              { text: "Batal", style: "cancel" },
               {
-                text: "Cancel",
-                style: "cancel",
-              },
-              {
-                text: "Delete",
+                text: "Hapus",
                 style: "destructive",
                 onPress: () => {
-                  deleteCollection(collectionId);
-                  Alert.alert("Success", "Collection deleted");
+                  deleteCollection(item.id);
+                  Alert.alert("Berhasil", "Koleksi telah dihapus");
                 },
               },
             ],
           );
         },
-        style: "destructive",
       },
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
+      { text: "Batal", style: "cancel" },
     ]);
   };
 
-  // Render functions
   const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
     <TouchableOpacity
       style={styles.bookmarkItem}
@@ -167,7 +139,9 @@ const BookmarkScreen = () => {
             <Text style={styles.surahName}>{item.surahName}</Text>
             <Text style={styles.ayahNumber}> • Ayah {item.nomorAyat}</Text>
           </View>
-          <Text style={styles.arabicTextSmall}>{item.ayahText}</Text>
+          <Text style={styles.arabicTextSmall} numberOfLines={2}>
+            {item.ayahText }
+          </Text>
         </View>
       </View>
       <TouchableOpacity
@@ -194,6 +168,7 @@ const BookmarkScreen = () => {
         })
       }
       onLongPress={() => handleLongPressCollection(item)}
+      activeOpacity={0.7}
     >
       <View style={styles.itemLeft}>
         <Folder color={PRIMARY_COLOR} size={28} />
@@ -218,74 +193,79 @@ const BookmarkScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BACKGROUND_COLOR}
+        translucent={false}
+      />
+
       <Header title="Bookmarks" />
 
-      {/* Add New Collection Button */}
-      <TouchableOpacity style={styles.addSection} onPress={handleAddCollection}>
-        <View style={styles.itemLeft}>
-          <PlusSquare color={PRIMARY_COLOR} size={28} />
-          <Text style={styles.addText}>Add new collection</Text>
-        </View>
-        <ListFilter color={TEXT_COLOR} size={24} />
-      </TouchableOpacity>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <TouchableOpacity
+          style={styles.addSection}
+          onPress={handleAddCollection}
+          activeOpacity={0.7}
+        >
+          <View style={styles.itemLeft}>
+            <PlusSquare color={PRIMARY_COLOR} size={28} />
+            <Text style={styles.addText}>Add new collection</Text>
+          </View>
+          <ListFilter color={TEXT_COLOR} size={24} />
+        </TouchableOpacity>
 
-      {/* Bookmarks List */}
-      {bookmarks.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Bookmarked Ayahs</Text>
-          <FlatList
-            data={bookmarks as BookmarkItem[]}
-            keyExtractor={(item) => `${item.surahId}-${item.nomorAyat}`}
-            renderItem={renderBookmarkItem}
-            contentContainerStyle={styles.listContent}
-            scrollEnabled={false}
-          />
-        </>
-      )}
+        {bookmarks.length > 0 && (
+          <View>
+            <Text style={styles.sectionTitle}>Bookmarked Ayahs</Text>
+            {bookmarks.map((item) => (
+              <View key={`${item.surahId}-${item.nomorAyat}`}>
+                {renderBookmarkItem({ item })}
+              </View>
+            ))}
+          </View>
+        )}
 
-      {/* Pinned Collections */}
-      {pinnedCollections.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Pinned Collections</Text>
-          <FlatList
-            data={pinnedCollections}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCollectionItem}
-            contentContainerStyle={styles.listContent}
-            scrollEnabled={false}
-          />
-        </>
-      )}
+        {pinnedCollections.length > 0 && (
+          <View>
+            <Text style={styles.sectionTitle}>Pinned Collections</Text>
+            {pinnedCollections.map((item) => (
+              <View key={item.id}>
+                {renderCollectionItem({ item })}
+              </View>
+            ))}
+          </View>
+        )}
 
-      {/* Other Collections */}
-      {unpinnedCollections.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Collections</Text>
-          <FlatList
-            data={unpinnedCollections}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCollectionItem}
-            contentContainerStyle={styles.listContent}
-            scrollEnabled={false}
-          />
-        </>
-      )}
+        {unpinnedCollections.length > 0 && (
+          <View>
+            <Text style={styles.sectionTitle}>Collections</Text>
+            {unpinnedCollections.map((item) => (
+              <View key={item.id}>
+                {renderCollectionItem({ item })}
+              </View>
+            ))}
+          </View>
+        )}
 
-      {bookmarks.length === 0 && collections.length === 0 && (
-        <View style={styles.emptyState}>
-          <Bookmark color={SECONDARY_COLOR} size={48} />
-          <Text style={styles.emptyStateText}>
-            No bookmarks or collections yet
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyStateButton}
-            onPress={handleAddCollection}
-          >
-            <Text style={styles.emptyStateButtonText}>Create Collection</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        {bookmarks.length === 0 && collections.length === 0 && (
+          <View style={styles.emptyState}>
+            <Bookmark color={SECONDARY_COLOR} size={48} />
+            <Text style={styles.emptyStateText}>
+              No bookmarks or collections yet
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={handleAddCollection}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.emptyStateButtonText}>Create Collection</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
 
       <BottomTabBar active="bookmark" />
     </SafeAreaView>
@@ -296,6 +276,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BACKGROUND_COLOR,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   addSection: {
     flexDirection: "row",
@@ -314,6 +298,7 @@ const styles = StyleSheet.create({
   itemLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   textContainer: {
     marginLeft: 15,
@@ -324,9 +309,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginLeft: 15,
-  },
-  listContent: {
-    paddingBottom: 20,
   },
   sectionTitle: {
     color: TEXT_COLOR,
@@ -365,6 +347,7 @@ const styles = StyleSheet.create({
     color: SECONDARY_COLOR,
     fontSize: 12,
     marginTop: 5,
+    lineHeight: 18,
   },
   collectionItem: {
     flexDirection: "row",
@@ -379,7 +362,6 @@ const styles = StyleSheet.create({
   collectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   collectionName: {
     color: TEXT_COLOR,
@@ -399,6 +381,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingVertical: 60,
   },
   emptyStateText: {
     color: SECONDARY_COLOR,
