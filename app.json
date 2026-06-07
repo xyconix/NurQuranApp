@@ -4,11 +4,11 @@
     "slug": "nurquran",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/nurquran.png",
+    "icon": "./assets/1.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/3.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/1.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
@@ -27,7 +27,7 @@
       "package": "com.s3r3r.nurquran"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/2.png"
     },
     "extra": {
       "eas": {
