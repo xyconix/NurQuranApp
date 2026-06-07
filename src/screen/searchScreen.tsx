@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Search, ArrowLeft, X } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAppStore } from "../store/useAppStore";
@@ -43,6 +44,7 @@ interface Surah {
 }
 
 const SearchScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState("");
   const { allSurahs } = useAppStore();
@@ -54,7 +56,7 @@ const SearchScreen = () => {
     return allSurahs.filter(
       (surah: Surah) =>
         surah.namaLatin.toLowerCase().includes(searchKey) ||
-        surah.arti.toLowerCase().includes(searchKey)
+        surah.arti.toLowerCase().includes(searchKey),
     );
   }, [query, allSurahs]);
 
@@ -62,26 +64,31 @@ const SearchScreen = () => {
     setQuery("");
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: Surah }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("SurahDetail", { surahId: item.nomor })}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.numberBadge}>
-          <Text style={styles.numberText}>{item.nomor}</Text>
+  const renderItem = useCallback(
+    ({ item }: { item: Surah }) => (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate("SurahDetail", { surahId: item.nomor })
+        }
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.numberBadge}>
+            <Text style={styles.numberText}>{item.nomor}</Text>
+          </View>
+          <View style={styles.surahInfo}>
+            <Text style={styles.title}>{item.namaLatin}</Text>
+            <Text style={styles.subTitle}>
+              {item.arti} • {item.jumlahAyat} {t("Ayat")}
+            </Text>
+          </View>
+          <Text style={styles.arabic}>{item.nama}</Text>
         </View>
-        <View style={styles.surahInfo}>
-          <Text style={styles.title}>{item.namaLatin}</Text>
-          <Text style={styles.subTitle}>
-            {item.arti} • {item.jumlahAyat} Ayat
-          </Text>
-        </View>
-        <Text style={styles.arabic}>{item.nama}</Text>
-      </View>
-    </TouchableOpacity>
-  ), [navigation]);
+      </TouchableOpacity>
+    ),
+    [navigation],
+  );
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -90,16 +97,16 @@ const SearchScreen = () => {
           <View style={styles.bigSearchIcon}>
             <Search color={COLORS.primary} size={80} opacity={0.3} />
           </View>
-          <Text style={styles.emptyTitle}>Mulai Pencarian</Text>
+          <Text style={styles.emptyTitle}>{t("Start Search")}</Text>
           <Text style={styles.emptySub}>
-            Masukkan minimal {MIN_SEARCH_LENGTH} huruf untuk mencari surah Quran.
+            {t("Enter at least 2 characters to search Quran surahs")}
           </Text>
         </>
       ) : (
         <>
-          <Text style={styles.emptyTitle}>Surah Tidak Ditemukan</Text>
+          <Text style={styles.emptyTitle}>{t("Surah Not Found")}</Text>
           <Text style={styles.emptySub}>
-            Coba cari dengan kata kunci lain
+            {t("Try searching with different keywords")}
           </Text>
         </>
       )}
@@ -116,7 +123,7 @@ const SearchScreen = () => {
           <Search color={COLORS.secondaryText} size={SIZES.smallIconSize} />
           <TextInput
             style={styles.input}
-            placeholder="Cari Surah (contoh: Al-Fatihah)"
+            placeholder={t("Search Surah (example: Al-Fatihah)")}
             placeholderTextColor={COLORS.secondaryText}
             value={query}
             onChangeText={setQuery}
@@ -133,7 +140,7 @@ const SearchScreen = () => {
       {filteredResults.length > 0 ? (
         <View style={styles.resultsContainer}>
           <Text style={styles.foundText}>
-            Ditemukan {filteredResults.length} hasil
+            {t("Found")} {filteredResults.length} {t("results")}
           </Text>
           <FlatList
             data={filteredResults}

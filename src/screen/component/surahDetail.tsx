@@ -32,6 +32,7 @@ import { useAppStore } from "../../store/useAppStore";
 import type { Bookmark as BookmarkType } from "../../store/useAppStore";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 
 // Constants
 const PRIMARY_COLOR = "#A44AFF";
@@ -53,6 +54,7 @@ type Ayah = {
   nomorAyat: number;
   teksArab: string;
   teksIndonesia: string;
+  teksInggris?: string;
   audio: AudioSources;
 };
 
@@ -66,10 +68,143 @@ type Surah = {
   ayat: Ayah[];
 };
 
-// Fetch surah detail
-const fetchSurahDetail = async (id: number): Promise<Surah> => {
+// Fetch surah detail from equran.id (Indonesian)
+const fetchSurahDetailIndonesia = async (id: number): Promise<Surah> => {
   const response = await axios.get(`https://equran.id/api/v2/surat/${id}`);
   return response.data.data;
+};
+
+// Fetch English translation from Quran Cloud API
+const fetchEnglishTranslation = async (
+  surahNumber: number,
+  totalAyat: number,
+): Promise<Record<number, string>> => {
+  try {
+    // Using Quran Cloud API with Saheeh International translation (en.sahih)
+    const response = await axios.get(
+      `https://api.quran.com/api/v4/chapters/${surahNumber}/verses?language=en&words=true&translation_id=20`,
+      {
+        timeout: 10000,
+      },
+    );
+
+    console.log("Quran.com API response:", {
+      hasVerses: !!response.data.verses,
+      versesCount: response.data.verses?.length,
+      firstVerse: response.data.verses?.[0],
+    });
+
+    const translationMap: Record<number, string> = {};
+
+    if (response.data.verses && Array.isArray(response.data.verses)) {
+      response.data.verses.forEach((verse: any) => {
+        // Try to get English translation
+        let englishText = "";
+
+        if (verse.translations && Array.isArray(verse.translations)) {
+          const sahihTrans = verse.translations.find(
+            (t: any) => t.resource_id === 20,
+          );
+          if (sahihTrans) {
+            englishText = sahihTrans.text;
+          } else if (verse.translations[0]) {
+            englishText = verse.translations[0].text;
+          }
+        } else if (verse.text) {
+          englishText = verse.text;
+        }
+
+        if (englishText) {
+          translationMap[verse.verse_number] = englishText;
+        }
+      });
+    }
+
+    console.log(
+      "Successfully loaded",
+      Object.keys(translationMap).length,
+      "English verses",
+    );
+    if (Object.keys(translationMap).length > 0) {
+      const firstEntry = Object.entries(translationMap)[0];
+      console.log(
+        "First English verse sample:",
+        firstEntry[1]?.substring(0, 80),
+      );
+    }
+
+    return translationMap;
+  } catch (error) {
+    console.error("Error fetching English translation from quran.com:", error);
+
+    // Fallback to Al-Quran.io API
+    try {
+      console.log("Trying Al-Quran.io API as fallback...");
+      const response = await axios.get(
+        `https://api.alquran.cloud/v1/surah/${surahNumber}/en.sahih`,
+        {
+          timeout: 10000,
+        },
+      );
+
+      const translationMap: Record<number, string> = {};
+
+      if (response.data.data && response.data.data.ayahs) {
+        response.data.data.ayahs.forEach((ayah: any) => {
+          if (ayah.text) {
+            translationMap[ayah.numberInSurah] = ayah.text;
+          }
+        });
+      }
+
+      console.log(
+        "Al-Quran.io fallback loaded",
+        Object.keys(translationMap).length,
+        "verses",
+      );
+      return translationMap;
+    } catch (fallbackError) {
+      console.error("Al-Quran.io fallback also failed:", fallbackError);
+      return {};
+    }
+  }
+};
+
+// Fetch surah detail with language support
+const fetchSurahDetail = async (
+  id: number,
+  language: "id" | "en" = "id",
+): Promise<Surah> => {
+  console.log("Fetching surah", id, "with language:", language);
+  const surah = await fetchSurahDetailIndonesia(id);
+
+  // If English is requested, fetch and merge English translations
+  if (language === "en") {
+    console.log("Fetching English translations for surah", id);
+    const englishTranslations = await fetchEnglishTranslation(
+      id,
+      surah.jumlahAyat,
+    );
+    console.log(
+      "Fetched English translations count:",
+      Object.keys(englishTranslations).length,
+    );
+
+    surah.ayat = surah.ayat.map((ayah) => ({
+      ...ayah,
+      teksInggris: englishTranslations[ayah.nomorAyat] || ayah.teksIndonesia,
+    }));
+
+    // Log first ayah to verify
+    if (surah.ayat.length > 0) {
+      console.log(
+        "First ayah English translation:",
+        surah.ayat[0].teksInggris?.substring(0, 50),
+      );
+    }
+  }
+
+  return surah;
 };
 
 // Qari names mapping
@@ -85,6 +220,14 @@ const SurahDetail = () => {
   const route = useRoute<any>();
   const { surahId, nomorAyat } = route.params;
   const flatListRef = useRef<FlatList>(null);
+  const { t, i18n } = useTranslation();
+
+  // Detect language - 'en' for English, 'id' for Indonesian
+  // If not explicitly Indonesian, default to English
+  const language = i18n.language?.includes("id") ? "id" : "en";
+
+  console.log("Current i18n language:", i18n.language);
+  console.log("Detected language for display:", language);
 
   const navigation = useNavigation<NavigationProp>();
 
@@ -111,8 +254,8 @@ const SurahDetail = () => {
 
   // Query
   const { data: surah, isLoading } = useQuery({
-    queryKey: ["surah", surahId],
-    queryFn: () => fetchSurahDetail(surahId),
+    queryKey: ["surah", surahId, language],
+    queryFn: () => fetchSurahDetail(surahId, language),
   });
 
   // Initialize audio mode
@@ -171,7 +314,7 @@ const SurahDetail = () => {
   const tryPlayAudio = async (
     audio: AudioSources,
     ayatNumber: number,
-    onFinish?: () => void
+    onFinish?: () => void,
   ): Promise<boolean> => {
     const urlKeys = [selectedQari, "05", "01", "02", "03", "04"];
     const triedUrls = new Set<string>();
@@ -186,15 +329,14 @@ const SurahDetail = () => {
 
         await cleanupSound();
 
-        const { sound: newSound, status } =
-          await Audio.Sound.createAsync(
-            { uri: url },
-            {
-              shouldPlay: true,
-              volume: 1.0,
-              rate: 1.0,
-            }
-          );
+        const { sound: newSound, status } = await Audio.Sound.createAsync(
+          { uri: url },
+          {
+            shouldPlay: true,
+            volume: 1.0,
+            rate: 1.0,
+          },
+        );
 
         if (!status.isLoaded) {
           console.log(`Audio not loaded for Qari ${key}, trying next...`);
@@ -202,21 +344,25 @@ const SurahDetail = () => {
           continue;
         }
 
-        console.log(`Audio loaded successfully (Qari ${key}), duration: ${status.durationMillis}ms`);
+        console.log(
+          `Audio loaded successfully (Qari ${key}), duration: ${status.durationMillis}ms`,
+        );
 
         // Set callback for when audio finishes
-        newSound.setOnPlaybackStatusUpdate((playbackStatus: AVPlaybackStatus) => {
-          if (!playbackStatus.isLoaded) return;
+        newSound.setOnPlaybackStatusUpdate(
+          (playbackStatus: AVPlaybackStatus) => {
+            if (!playbackStatus.isLoaded) return;
 
-          if (playbackStatus.didJustFinish && !playbackStatus.isLooping) {
-            console.log(`Audio finished for ayah ${ayatNumber}`);
-            if (onFinish) {
-              onFinish();
-            } else {
-              setPlayingAyat(null);
+            if (playbackStatus.didJustFinish && !playbackStatus.isLooping) {
+              console.log(`Audio finished for ayah ${ayatNumber}`);
+              if (onFinish) {
+                onFinish();
+              } else {
+                setPlayingAyat(null);
+              }
             }
-          }
-        });
+          },
+        );
 
         soundRef.current = newSound;
         setPlayingAyat(ayatNumber);
@@ -256,9 +402,11 @@ const SurahDetail = () => {
 
       if (!success) {
         Alert.alert(
-          "Audio Error",
-          "Could not play audio. Please check your internet connection and try again.",
-          [{ text: "OK" }]
+          t("Audio Error"),
+          t(
+            "Could not play audio. Please check your internet connection and try again.",
+          ),
+          [{ text: t("OK") }],
         );
       } else if (surah) {
         setLastRead({
@@ -270,7 +418,7 @@ const SurahDetail = () => {
       }
     } catch (error) {
       console.error("Error in playSingleAyah:", error);
-      Alert.alert("Error", "Failed to play audio");
+      Alert.alert(t("Error"), t("Failed to play audio"));
     } finally {
       setIsLoadingAudio(false);
     }
@@ -279,7 +427,7 @@ const SurahDetail = () => {
   // Play full surah
   const playFullSurah = async () => {
     if (!surah?.ayat || surah.ayat.length === 0) {
-      Alert.alert("Error", "No ayahs available");
+      Alert.alert(t("Error"), t("No ayahs available"));
       return;
     }
 
@@ -316,7 +464,9 @@ const SurahDetail = () => {
     }
 
     const currentAyah = surah.ayat[index];
-    console.log(`\n=== Playing Ayah ${currentAyah.nomorAyat} (index ${index}) ===`);
+    console.log(
+      `\n=== Playing Ayah ${currentAyah.nomorAyat} (index ${index}) ===`,
+    );
 
     setIsLoadingAudio(true);
     setCurrentPlayingIndex(index);
@@ -348,7 +498,7 @@ const SurahDetail = () => {
           setPlayingAyat(null);
           setCurrentPlayingIndex(0);
         }
-      }
+      },
     );
 
     setIsLoadingAudio(false);
@@ -375,7 +525,9 @@ const SurahDetail = () => {
         namaLatin: surah.namaLatin || "",
       });
     } else {
-      console.log(`Failed to play ayah ${currentAyah.nomorAyat}, trying next...`);
+      console.log(
+        `Failed to play ayah ${currentAyah.nomorAyat}, trying next...`,
+      );
       // Skip to next ayah if current fails
       if (isPlayingFullSurahRef.current) {
         const nextIndex = index + 1;
@@ -411,9 +563,9 @@ const SurahDetail = () => {
       text: `${name} ${selectedQari === key ? "✓" : ""}`,
       onPress: () => setSelectedQari(key),
     }));
-    buttons.push({ text: "Cancel", onPress: () => {} });
+    buttons.push({ text: t("Cancel"), onPress: () => {} });
 
-    Alert.alert("Select Qari (Reciter)", "Choose a reciter:", buttons);
+    Alert.alert(t("Select Qari (Reciter)"), t("Choose a reciter:"), buttons);
   };
 
   // Bookmark handlers
@@ -442,15 +594,15 @@ const SurahDetail = () => {
           surahName: surah?.namaLatin || "",
           ayahText: item.teksArab,
         });
-        Alert.alert("Tersimpan", `Ayat dimasukkan ke ${c.name}`);
+        Alert.alert(t("Saved"), t("Ayah saved to") + ` ${c.name}`);
       },
     }));
 
     options.push({
-      text: "+ Buat Koleksi Baru",
+      text: t("+ Create New Collection"),
       onPress: () => {
         if (Platform.OS === "ios") {
-          Alert.prompt("Koleksi Baru", "Masukkan nama folder:", (name) => {
+          Alert.prompt(t("New Collection"), t("Enter folder name:"), (name) => {
             if (name) {
               const newId = createCollection(name);
               addAyatToCollection(newId, {
@@ -462,7 +614,7 @@ const SurahDetail = () => {
             }
           });
         } else {
-          const collectionName = `Collection ${collections.length + 1}`;
+          const collectionName = t("Collection") + ` ${collections.length + 1}`;
           const newId = createCollection(collectionName);
           addAyatToCollection(newId, {
             surahId,
@@ -470,21 +622,25 @@ const SurahDetail = () => {
             surahName: surah?.namaLatin || "",
             ayahText: item.teksArab,
           });
-          Alert.alert("Berhasil", `Ayat disimpan ke ${collectionName}`);
+          Alert.alert(t("Success"), t("Ayah saved to") + ` ${collectionName}`);
         }
       },
     });
 
-    options.push({ text: "Batal", onPress: () => {} });
+    options.push({ text: t("Cancel"), onPress: () => {} });
 
-    Alert.alert("Simpan ke Koleksi", "Pilih folder penyimpanan:", options);
+    Alert.alert(t("Save to Collection"), t("Choose storage folder:"), options);
   };
 
   // Share handler
   const onShare = async (item: Ayah) => {
     try {
+      const translation =
+        language === "en"
+          ? item.teksInggris || item.teksIndonesia
+          : item.teksIndonesia;
       await Share.share({
-        message: `${item.teksArab}\n\n${item.teksIndonesia}\n\nFrom Surah ${surah?.namaLatin} (${item.nomorAyat})`,
+        message: `${item.teksArab}\n\n${translation}\n\n${t("From")} ${t("Surah")} ${surah?.namaLatin} (${item.nomorAyat})`,
       });
     } catch (error) {
       console.error("Error sharing:", error);
@@ -499,10 +655,7 @@ const SurahDetail = () => {
     return (
       <Animated.View
         entering={FadeInUp.delay(Math.min(index * 50, 500))}
-        style={[
-          styles.ayatContainer,
-          isPlaying && styles.ayatContainerPlaying,
-        ]}
+        style={[styles.ayatContainer, isPlaying && styles.ayatContainerPlaying]}
       >
         <View style={styles.ayatActionBar}>
           <View style={styles.ayatNumberBadge}>
@@ -523,17 +676,9 @@ const SurahDetail = () => {
               {isLoadingAudio && isPlaying ? (
                 <ActivityIndicator size="small" color={PRIMARY_COLOR} />
               ) : isPlaying ? (
-                <Pause
-                  color={PRIMARY_COLOR}
-                  size={20}
-                  fill={PRIMARY_COLOR}
-                />
+                <Pause color={PRIMARY_COLOR} size={20} fill={PRIMARY_COLOR} />
               ) : (
-                <Play
-                  color={PRIMARY_COLOR}
-                  size={20}
-                  fill="transparent"
-                />
+                <Play color={PRIMARY_COLOR} size={20} fill="transparent" />
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -550,7 +695,11 @@ const SurahDetail = () => {
           </View>
         </View>
         <Text style={styles.arabicText}>{item.teksArab}</Text>
-        <Text style={styles.translationText}>{item.teksIndonesia}</Text>
+        <Text style={styles.translationText}>
+          {language === "en"
+            ? item.teksInggris || item.teksIndonesia
+            : item.teksIndonesia}
+        </Text>
       </Animated.View>
     );
   };
@@ -568,12 +717,12 @@ const SurahDetail = () => {
         });
       }
     },
-    [surahId, surah, setLastRead, isPlayingFullSurah]
+    [surahId, surah, setLastRead, isPlayingFullSurah],
   );
 
   const viewabilityConfig = React.useMemo(
     () => ({ itemVisiblePercentThreshold: 30 }),
-    []
+    [],
   );
 
   const handleScrollToIndexFailed = (info: {
@@ -591,7 +740,7 @@ const SurahDetail = () => {
   useEffect(() => {
     if (surah && nomorAyat) {
       const ayatIndex = surah.ayat.findIndex(
-        (ayat: Ayah) => ayat.nomorAyat === nomorAyat
+        (ayat: Ayah) => ayat.nomorAyat === nomorAyat,
       );
       if (ayatIndex !== -1 && flatListRef.current) {
         setTimeout(() => {
@@ -618,7 +767,9 @@ const SurahDetail = () => {
         <TouchableOpacity onPress={handleHome}>
           <ArrowLeft color={SECONDARY_COLOR} size={28} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>{surah?.namaLatin || "Loading..."}</Text>
+        <Text style={styles.navTitle}>
+          {surah?.namaLatin || t("Loading") + "..."}
+        </Text>
         <TouchableOpacity onPress={handleSearchPress}>
           <Search color={SECONDARY_COLOR} size={28} />
         </TouchableOpacity>
@@ -627,7 +778,7 @@ const SurahDetail = () => {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          <Text style={styles.loadingText}>Memuat Ayat...</Text>
+          <Text style={styles.loadingText}>{t("Loading Ayahs")}...</Text>
         </View>
       ) : (
         <FlatList
@@ -684,8 +835,8 @@ const SurahDetail = () => {
                   )}
                   <Text style={styles.playFullButtonText}>
                     {isPlayingFullSurah
-                      ? "Stop Playback"
-                      : "Play Full Surah"}
+                      ? t("Stop Playback")
+                      : t("Play Full Surah")}
                   </Text>
                 </TouchableOpacity>
 
@@ -723,9 +874,7 @@ const SurahDetail = () => {
 
                       <TouchableOpacity
                         onPress={skipToNextAyah}
-                        disabled={
-                          currentPlayingIndex >= surah.ayat.length - 1
-                        }
+                        disabled={currentPlayingIndex >= surah.ayat.length - 1}
                         style={styles.controlButton}
                       >
                         <SkipForward

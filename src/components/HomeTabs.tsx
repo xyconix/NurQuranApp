@@ -73,24 +73,7 @@ export const ParaList = () => {
   );
 };
 
-// --- COMPONENT: PAGE ---
-export const PageList = () => {
-  const pageData = Array.from({ length: 604 }, (_, i) => ({ id: i + 1, name: `Page ${i + 1}` }));
 
-  return (
-    <FlatList
-      data={pageData}
-      numColumns={4}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <TouchableOpacity style={styles.pageBox}>
-          <Text style={styles.pageText}>{item.id}</Text>
-        </TouchableOpacity>
-      )}
-      contentContainerStyle={{ paddingHorizontal: 20, alignItems: 'center', paddingBottom: 100 }}
-    />
-  );
-};
 
 const styles = StyleSheet.create({
   listItem: { flexDirection: 'row', paddingVertical: 15, borderBottomWidth: 0.5, borderBottomColor: '#240F4F', alignItems: 'center', justifyContent: 'space-between' },

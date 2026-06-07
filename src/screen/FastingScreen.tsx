@@ -14,12 +14,12 @@ import {
   Switch,
   Alert,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import MainTabNavigator from "../components/MainTabNavigator";
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
 
 import { X, Bell, BellOff } from "lucide-react-native";
-
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -87,6 +87,7 @@ const months = [
 const weekdays = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 const FastingScreen = () => {
+  const { t } = useTranslation();
   const defaultYear = new Date().getFullYear();
   const today = new Date();
 
@@ -132,8 +133,10 @@ const FastingScreen = () => {
 
       if (finalStatus !== "granted") {
         Alert.alert(
-          "Izin Notifikasi",
-          "Aplikasi membutuhkan izin notifikasi untuk mengirimkan pengingat puasa dan hari besar Islam.",
+          t("Notification Permission"),
+          t(
+            "App needs notification permission to send fasting reminders and Islamic event notifications.",
+          ),
           [{ text: "OK" }],
         );
       }
@@ -141,7 +144,7 @@ const FastingScreen = () => {
       // Set notification channel for Android
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("fasting-reminders", {
-          name: "Pengingat Puasa",
+          name: t("Fasting Reminders"),
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#A855F7",
@@ -149,7 +152,7 @@ const FastingScreen = () => {
         });
 
         await Notifications.setNotificationChannelAsync("islamic-events", {
-          name: "Hari Besar Islam",
+          name: t("Important Islamic Days"),
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#10B981",
@@ -168,49 +171,49 @@ const FastingScreen = () => {
   ): FastingEvent | null => {
     if (dayOfWeek === 1) {
       return {
-        label: "Senin",
+        label: t("Monday"),
         color: "#3B82F6",
-        description: "Puasa Sunnah Senin",
+        description: t("Monday Sunnah Fast"),
       };
     }
 
     if (dayOfWeek === 4) {
       return {
-        label: "Kamis",
+        label: t("Thursday"),
         color: "#3B82F6",
-        description: "Puasa Sunnah Kamis",
+        description: t("Thursday Sunnah Fast"),
       };
     }
 
     if (["13", "14", "15"].includes(hijriDay)) {
       return {
-        label: "Ayyamul",
+        label: t("Ayyamul"),
         color: "#10B981",
-        description: "Puasa Ayyamul Bidh (Hari Putih)",
+        description: t("Ayyamul Bidh Fasting (White Days)"),
       };
     }
 
     if (hijriMonthNumber === 1 && hijriDay === "10") {
       return {
-        label: "Asyura",
+        label: t("Ashura"),
         color: "#EF4444",
-        description: "Puasa Hari Asyura - Sangat Utama",
+        description: t("Day of Ashura - Very Recommended"),
       };
     }
 
     if (hijriMonthNumber === 12 && hijriDay === "9") {
       return {
-        label: "Arafah",
+        label: t("Arafah"),
         color: "#EF4444",
-        description: "Puasa Hari Arafah - Sangat Utama",
+        description: t("Day of Arafah - Very Recommended"),
       };
     }
 
     if (hijriMonthNumber === 9) {
       return {
-        label: "Ramadan",
+        label: t("Ramadan"),
         color: "#FBBF24",
-        description: "Puasa Wajib Ramadan",
+        description: t("Obligatory Ramadan Fast"),
       };
     }
 
@@ -223,82 +226,91 @@ const FastingScreen = () => {
   ): IslamicEvent | null => {
     if (hijriMonthNumber === 1 && hijriDay === "1") {
       return {
-        label: "Tahun Baru Islam",
-        description: "1 Muharram - Tahun Baru Hijriah",
-        hijriDate: "1 Muharram",
+        label: t("Islamic New Year"),
+        description: t("1 Muharram - Islamic New Year"),
+        hijriDate: t("1 Muharram"),
       };
     }
 
     if (hijriMonthNumber === 1 && hijriDay === "10") {
       return {
-        label: "Hari Asyura",
-        description:
-          "10 Muharram - Hari Raya untuk kaum Yahudi dan kami diperintahkan berpuasa",
-        hijriDate: "10 Muharram",
+        label: t("Day of Ashura"),
+        description: t(
+          "10 Muharram - A day of celebration for the Jews and we are commanded to fast",
+        ),
+        hijriDate: t("10 Muharram"),
       };
     }
 
     if (hijriMonthNumber === 3 && hijriDay === "12") {
       return {
-        label: "Maulid Nabi Muhammad",
-        description: "Kelahiran Nabi Muhammad SAW - 12 Rabiul Awal",
-        hijriDate: "12 Rabiul Awal",
+        label: t("Mawlid Nabi Muhammad"),
+        description: t("Birth of Prophet Muhammad SAW - 12 Rabi al-Awwal"),
+        hijriDate: t("12 Rabi al-Awwal"),
       };
     }
 
     if (hijriMonthNumber === 7 && hijriDay === "27") {
       return {
-        label: "Isra Miraj",
-        description: "Perjalanan Isra Miraj Nabi Muhammad SAW - 27 Rajab",
-        hijriDate: "27 Rajab",
+        label: t("Isra and Miraj"),
+        description: t(
+          "Journey of Isra and Miraj of Prophet Muhammad SAW - 27 Rajab",
+        ),
+        hijriDate: t("27 Rajab"),
       };
     }
 
     if (hijriMonthNumber === 8 && hijriDay === "15") {
       return {
-        label: "Nisfu Syaban",
-        description: "Malam Nisfu Syaban - Malam Puasa Sunnah - 15 Syaban",
-        hijriDate: "15 Syaban",
+        label: t("Nisfu Sha'ban"),
+        description: t(
+          "Night of Nisfu Sha'ban - Night of Sunnah Fasting - 15 Sha'ban",
+        ),
+        hijriDate: t("15 Sha'ban"),
       };
     }
 
     if (hijriMonthNumber === 9 && hijriDay === "1") {
       return {
-        label: "Awal Ramadan",
-        description: "Awal bulan puasa Ramadan - 1 Ramadan",
-        hijriDate: "1 Ramadan",
+        label: t("Beginning of Ramadan"),
+        description: t("Beginning of Ramadan fasting month - 1 Ramadan"),
+        hijriDate: t("1 Ramadan"),
       };
     }
 
     if (hijriMonthNumber === 9 && hijriDay === "17") {
       return {
-        label: "Nuzulul Quran",
-        description: "Turunnya Al-Quran kepada Nabi Muhammad SAW - 17 Ramadan",
-        hijriDate: "17 Ramadan",
+        label: t("Nuzul Al-Quran"),
+        description: t(
+          "Revelation of Al-Quran to Prophet Muhammad SAW - 17 Ramadan",
+        ),
+        hijriDate: t("17 Ramadan"),
       };
     }
 
     if (hijriMonthNumber === 9 && hijriDay === "27") {
       return {
-        label: "Lailatul Qadar",
-        description: "Malam Kemuliaan - Malam turunnya Al-Quran - 27 Ramadan",
-        hijriDate: "27 Ramadan",
+        label: t("Lailatul Qadar"),
+        description: t(
+          "Night of Power - Night of revelation of Al-Quran - 27 Ramadan",
+        ),
+        hijriDate: t("27 Ramadan"),
       };
     }
 
     if (hijriMonthNumber === 10 && hijriDay === "1") {
       return {
-        label: "Idul Fitri",
-        description: "Hari Raya Idul Fitri - Lebaran - 1 Syawal",
-        hijriDate: "1 Syawal",
+        label: t("Eid al-Fitr"),
+        description: t("Eid al-Fitr celebration - 1 Shawwal"),
+        hijriDate: t("1 Shawwal"),
       };
     }
 
     if (hijriMonthNumber === 12 && hijriDay === "10") {
       return {
-        label: "Idul Adha",
-        description: "Hari Raya Idul Adha - Hari Raya Kurban - 10 Dzulhijjah",
-        hijriDate: "10 Dzulhijjah",
+        label: t("Eid al-Adha"),
+        description: t("Eid al-Adha celebration - 10 Dhul-Hijjah"),
+        hijriDate: t("10 Dhul-Hijjah"),
       };
     }
 
@@ -371,8 +383,8 @@ const FastingScreen = () => {
               try {
                 await Notifications.scheduleNotificationAsync({
                   content: {
-                    title: `🌙 Besok: ${fastingEvent.description}`,
-                    body: `Jangan lupa niat puasa malam ini. Besok ${day.day} ${months[day.month - 1]} ${day.year} adalah hari ${fastingEvent.description}.`,
+                    title: `🌙 ${t("Tomorrow")}: ${fastingEvent.description}`,
+                    body: `${t("Don't forget to make the intention for fasting tonight")}. ${t("Tomorrow")} ${day.day} ${t(months[day.month - 1])} ${day.year} ${t("is the day")} ${fastingEvent.description}.`,
                     data: {
                       type: "fasting",
                       date: day.date,
@@ -398,8 +410,8 @@ const FastingScreen = () => {
               try {
                 await Notifications.scheduleNotificationAsync({
                   content: {
-                    title: `🌙 Besok: ${fastingEvent.description}`,
-                    body: `Jangan lupa niat puasa ${fastingEvent.label} malam ini.`,
+                    title: `🌙 ${t("Tomorrow")}: ${fastingEvent.description}`,
+                    body: `${t("Don't forget to make the intention for fasting")} ${fastingEvent.label} ${t("tonight")}.`,
                     data: {
                       type: "fasting",
                       date: day.date,
@@ -427,8 +439,8 @@ const FastingScreen = () => {
               // Notification the day before at 20:00
               await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `📿 Besok: ${islamicEvent.label}`,
-                  body: `${islamicEvent.description}. Besok ${day.day} ${months[day.month - 1]} ${day.year}.`,
+                  title: `📿 ${t("Tomorrow")}: ${islamicEvent.label}`,
+                  body: `${islamicEvent.description}. ${t("Tomorrow")} ${day.day} ${t(months[day.month - 1])} ${day.year}.`,
                   data: {
                     type: "event",
                     date: day.date,
@@ -455,8 +467,8 @@ const FastingScreen = () => {
               if (onDayDiffSeconds > 0 && count < 60) {
                 await Notifications.scheduleNotificationAsync({
                   content: {
-                    title: `🕌 Hari Ini: ${islamicEvent.label}`,
-                    body: `Selamat memperingati ${islamicEvent.label}! ${islamicEvent.description}.`,
+                    title: `🕌 ${t("Today")}: ${islamicEvent.label}`,
+                    body: `${t("Happy to commemorate")} ${islamicEvent.label}! ${islamicEvent.description}.`,
                     data: {
                       type: "event",
                       date: day.date,
@@ -642,7 +654,9 @@ const FastingScreen = () => {
           translucent={false}
         />
         <ActivityIndicator size="large" color="#A855F7" />
-        <Text style={styles.loadingText}>Memuat Kalender Islam...</Text>
+        <Text style={styles.loadingText}>
+          {t("Loading Islamic Calendar")}...
+        </Text>
       </SafeAreaView>
     );
   }
@@ -658,23 +672,25 @@ const FastingScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.title}>Kalender Islam</Text>
-          <Text style={styles.subtitle}>Kalender Puasa & Hari Islam</Text>
+          <Text style={styles.title}>{t("Islamic Calendar")}</Text>
+          <Text style={styles.subtitle}>
+            {t("Fasting Calendar & Islamic Events")}
+          </Text>
         </View>
 
         {/* NOTIFICATION SETTINGS */}
         <View style={styles.notifSection}>
           <Text style={styles.notifSectionTitle}>
-            🔔 Pengaturan Notifikasi
+            🔔 {t("Notification Settings")}
           </Text>
 
           <View style={styles.notifRow}>
             <View style={styles.notifInfo}>
               <Bell color="#FBBF24" size={18} />
               <View style={styles.notifTextContainer}>
-                <Text style={styles.notifLabel}>Pengingat Puasa</Text>
+                <Text style={styles.notifLabel}>{t("Fasting Reminders")}</Text>
                 <Text style={styles.notifDesc}>
-                  Notifikasi malam sebelum hari puasa
+                  {t("Notification the night before fasting day")}
                 </Text>
               </View>
             </View>
@@ -690,9 +706,11 @@ const FastingScreen = () => {
             <View style={styles.notifInfo}>
               <Bell color="#10B981" size={18} />
               <View style={styles.notifTextContainer}>
-                <Text style={styles.notifLabel}>Hari Besar Islam</Text>
+                <Text style={styles.notifLabel}>
+                  {t("Important Islamic Days")}
+                </Text>
                 <Text style={styles.notifDesc}>
-                  Notifikasi sebelum hari besar Islam
+                  {t("Notification before important Islamic days")}
                 </Text>
               </View>
             </View>
@@ -710,7 +728,7 @@ const FastingScreen = () => {
               <View style={styles.notifStatusRow}>
                 <ActivityIndicator size="small" color="#A855F7" />
                 <Text style={styles.notifStatusText}>
-                  Menjadwalkan notifikasi...
+                  {t("Scheduling notifications")}...
                 </Text>
               </View>
             ) : (
@@ -729,8 +747,8 @@ const FastingScreen = () => {
                   ]}
                 >
                   {scheduledCount > 0
-                    ? `${scheduledCount} notifikasi terjadwal`
-                    : "Tidak ada notifikasi terjadwal"}
+                    ? `${scheduledCount} ${t("notifications scheduled")}`
+                    : t("No notifications scheduled")}
                 </Text>
               </View>
             )}
@@ -760,13 +778,13 @@ const FastingScreen = () => {
 
         {/* LEGEND */}
         <View style={styles.legendContainer}>
-          <Legend color="#3B82F6" label="Senin & Kamis" />
-          <Legend color="#10B981" label="Ayyamul Bidh" />
-          <Legend color="#EF4444" label="Asyura & Arafah" />
-          <Legend color="#FBBF24" label="Ramadan" />
+          <Legend color="#3B82F6" label={t("Monday & Thursday")} />
+          <Legend color="#10B981" label={t("Ayyamul Bidh")} />
+          <Legend color="#EF4444" label={t("Ashura & Arafah")} />
+          <Legend color="#FBBF24" label={t("Ramadan")} />
           <View style={styles.legendItem}>
             <View style={styles.whiteDot} />
-            <Text style={styles.legendText}>Hari Islam Penting</Text>
+            <Text style={styles.legendText}>{t("Important Islamic Day")}</Text>
           </View>
         </View>
 
@@ -780,7 +798,7 @@ const FastingScreen = () => {
             <Text style={styles.navButton}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.monthTitle}>
-            {months[selectedMonth]} {selectedYear}
+            {t(months[selectedMonth])} {selectedYear}
           </Text>
           <TouchableOpacity
             onPress={() => {

@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   Folder,
   PlusSquare,
@@ -48,6 +49,7 @@ type BookmarkItem = {
 };
 
 const BookmarkScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const {
     bookmarks,
@@ -64,25 +66,35 @@ const BookmarkScreen = () => {
 
   const handleAddCollection = () => {
     if (Platform.OS === "android") {
-      Alert.alert("Create Collection", "Collection name will be auto generated.", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Create",
-          onPress: () => {
-            const collectionName = `Collection ${collections.length + 1}`;
-            createCollection(collectionName);
-            Alert.alert("Success", `Collection "${collectionName}" created!`);
+      Alert.alert(
+        t("Create Collection"),
+        t("Collection name will be auto generated."),
+        [
+          { text: t("Cancel"), style: "cancel" },
+          {
+            text: t("Create"),
+            onPress: () => {
+              const collectionName = `Collection ${collections.length + 1}`;
+              createCollection(collectionName);
+              Alert.alert(
+                t("Success"),
+                `${t("Collection")} "${collectionName}" ${t("created!")}`,
+              );
+            },
           },
-        },
-      ]);
+        ],
+      );
     } else {
       Alert.prompt(
-        "Create Collection",
-        "Enter collection name:",
+        t("Create Collection"),
+        t("Enter folder name:"),
         (text) => {
           if (text?.trim()) {
             createCollection(text);
-            Alert.alert("Success", `Collection "${text}" created!`);
+            Alert.alert(
+              t("Success"),
+              `${t("Collection")} "${text}" ${t("created!")}`,
+            );
           }
         },
         "plain-text",
@@ -91,34 +103,35 @@ const BookmarkScreen = () => {
   };
 
   const handleLongPressCollection = (item: Collection) => {
-    Alert.alert("Kelola Koleksi", item.name, [
+    Alert.alert(t("Manage Collection"), item.name, [
       {
-        text: item.isPinned ? "Lepas Pin" : "Pin Koleksi",
+        text: item.isPinned ? t("Unpin Collection") : t("Pin Collection"),
         onPress: () =>
           item.isPinned ? unpinCollection(item.id) : pinCollection(item.id),
       },
       {
-        text: "Hapus",
+        text: t("Delete"),
         style: "destructive",
         onPress: () => {
           Alert.alert(
-            "Konfirmasi Hapus",
-            `Apakah Anda yakin ingin menghapus koleksi "${item.name}"?`,
+            t("Confirm Delete"),
+            t("Are you sure you want to delete this collection") +
+              ` "${item.name}"?`,
             [
-              { text: "Batal", style: "cancel" },
+              { text: t("Cancel"), style: "cancel" },
               {
-                text: "Hapus",
+                text: t("Delete"),
                 style: "destructive",
                 onPress: () => {
                   deleteCollection(item.id);
-                  Alert.alert("Berhasil", "Koleksi telah dihapus");
+                  Alert.alert(t("Success"), t("Collection deleted"));
                 },
               },
             ],
           );
         },
       },
-      { text: "Batal", style: "cancel" },
+      { text: t("Cancel"), style: "cancel" },
     ]);
   };
 
@@ -137,10 +150,13 @@ const BookmarkScreen = () => {
         <View style={styles.textContainer}>
           <View style={styles.row}>
             <Text style={styles.surahName}>{item.surahName}</Text>
-            <Text style={styles.ayahNumber}> • Ayah {item.nomorAyat}</Text>
+            <Text style={styles.ayahNumber}>
+              {" "}
+              • {t("Ayah No")} {item.nomorAyat}
+            </Text>
           </View>
           <Text style={styles.arabicTextSmall} numberOfLines={2}>
-            {item.ayahText }
+            {item.ayahText}
           </Text>
         </View>
       </View>
@@ -184,7 +200,9 @@ const BookmarkScreen = () => {
               />
             )}
           </View>
-          <Text style={styles.itemCount}>{item.items?.length || 0} items</Text>
+          <Text style={styles.itemCount}>
+            {item.items?.length || 0} {t("items")}
+          </Text>
         </View>
       </View>
       <ChevronRight color={TEXT_COLOR} size={20} />
@@ -199,7 +217,7 @@ const BookmarkScreen = () => {
         translucent={false}
       />
 
-      <Header title="Bookmarks" />
+      <Header title={t("Bookmarks")} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -212,14 +230,14 @@ const BookmarkScreen = () => {
         >
           <View style={styles.itemLeft}>
             <PlusSquare color={PRIMARY_COLOR} size={28} />
-            <Text style={styles.addText}>Add new collection</Text>
+            <Text style={styles.addText}>{t("Add new collection")}</Text>
           </View>
           <ListFilter color={TEXT_COLOR} size={24} />
         </TouchableOpacity>
 
         {bookmarks.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>Bookmarked Ayahs</Text>
+            <Text style={styles.sectionTitle}>{t("Bookmarked Ayahs")}</Text>
             {bookmarks.map((item) => (
               <View key={`${item.surahId}-${item.nomorAyat}`}>
                 {renderBookmarkItem({ item })}
@@ -230,22 +248,18 @@ const BookmarkScreen = () => {
 
         {pinnedCollections.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>Pinned Collections</Text>
+            <Text style={styles.sectionTitle}>{t("Pinned Collections")}</Text>
             {pinnedCollections.map((item) => (
-              <View key={item.id}>
-                {renderCollectionItem({ item })}
-              </View>
+              <View key={item.id}>{renderCollectionItem({ item })}</View>
             ))}
           </View>
         )}
 
         {unpinnedCollections.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>Collections</Text>
+            <Text style={styles.sectionTitle}>{t("Collections")}</Text>
             {unpinnedCollections.map((item) => (
-              <View key={item.id}>
-                {renderCollectionItem({ item })}
-              </View>
+              <View key={item.id}>{renderCollectionItem({ item })}</View>
             ))}
           </View>
         )}
@@ -254,14 +268,16 @@ const BookmarkScreen = () => {
           <View style={styles.emptyState}>
             <Bookmark color={SECONDARY_COLOR} size={48} />
             <Text style={styles.emptyStateText}>
-              No bookmarks or collections yet
+              {t("No bookmarks or collections yet")}
             </Text>
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={handleAddCollection}
               activeOpacity={0.8}
             >
-              <Text style={styles.emptyStateButtonText}>Create Collection</Text>
+              <Text style={styles.emptyStateButtonText}>
+                {t("Create Collection")}
+              </Text>
             </TouchableOpacity>
           </View>
         )}

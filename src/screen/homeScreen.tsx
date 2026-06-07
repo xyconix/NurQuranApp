@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAppStore } from "../store/useAppStore";
 import Header from "./component/Header";
 import { preloadQuranData } from "./component/preloadQuranData";
+import { useTranslation } from 'react-i18next';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -34,6 +35,7 @@ const HomeScreen = () => {
   const [activeTab, setActiveTab] = useState("Surah");
   const navigation = useNavigation<NavigationProp>();
   const { lastRead } = useAppStore();
+  const { t } = useTranslation();
 
   const { data: surahs } = useQuery({
     queryKey: ["surahs"],
@@ -67,11 +69,11 @@ const HomeScreen = () => {
     */
     <SafeAreaView edges={["top"]} style={styles.container}>
       {/* Header */}
-      <Header title="NurQuran" />
+      <Header title={t("NurQuran")} />
 
       {/* Greeting */}
       <View style={styles.greetingSection}>
-        <Text style={styles.greetingText}>Assalamualaikum</Text>
+        <Text style={styles.greetingText}>{t("Assalamualaikum")}</Text>
       </View>
 
       {/* Last Read Card */}
@@ -82,13 +84,13 @@ const HomeScreen = () => {
       >
         <View style={styles.cardContent}>
           <View style={styles.lastReadLabelContainer}>
-            <Text style={styles.lastReadText}>Last Read</Text>
+            <Text style={styles.lastReadText}>{t("Last Read")}</Text>
           </View>
           <Text style={styles.lastReadSurah}>
-            {lastRead?.namaLatin || "Al-Fatihah"}
+            {lastRead?.namaLatin || t("Al-Fatihah")}
           </Text>
           <Text style={styles.lastReadAyah}>
-            Ayah No: {lastRead?.nomorAyat || 1}
+            {t("Ayah No")}: {lastRead?.nomorAyat || 1}
           </Text>
         </View>
         <View style={styles.cardIllustration}>
@@ -110,7 +112,7 @@ const HomeScreen = () => {
                 activeTab === tab && styles.activeTabText,
               ]}
             >
-              {tab}
+              {t(tab)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -126,9 +128,9 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#0B1535" 
+  container: {
+    flex: 1,
+    backgroundColor: "#0B1535"
   },
   lastReadLabelContainer: {
     backgroundColor: "#A44AFF",

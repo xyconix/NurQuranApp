@@ -15,6 +15,7 @@ import axios from "axios";
 import { ArrowLeft, Share2, Play, Bookmark, Search } from "lucide-react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { Audio } from "expo-av";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../store/useAppStore";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { AnimatedQuran } from "../../components/SurahAssets";
@@ -34,6 +35,7 @@ type Ayah = {
   numberInSurah: number;
   text: string;
   textIndonesian: string;
+  textEnglish?: string;
   number: number;
   surah?: {
     englishName: string;
@@ -46,8 +48,41 @@ type JuzData = {
   ayahs: Ayah[];
 };
 
+// Fetch English translation for Juz from Al-Quran.io API
+const fetchEnglishTranslationForJuz = async (
+  juzId: number,
+): Promise<Record<number, string>> => {
+  try {
+    console.log("Fetching English translation for Juz", juzId);
+    const response = await axios.get(
+      `https://api.alquran.cloud/v1/juz/${juzId}/en.sahih`,
+      { timeout: 10000 },
+    );
+
+    const translationMap: Record<number, string> = {};
+    if (response.data.data?.ayahs) {
+      response.data.data.ayahs.forEach((ayah: any) => {
+        translationMap[ayah.number] = ayah.text;
+      });
+    }
+
+    console.log(
+      "Loaded",
+      Object.keys(translationMap).length,
+      "English verses for Juz",
+    );
+    return translationMap;
+  } catch (error) {
+    console.error("Error fetching English translation:", error);
+    return {};
+  }
+};
+
 // Fetching data Juz with better error handling
-const fetchJuzDetail = async (id: number): Promise<JuzData> => {
+const fetchJuzDetail = async (
+  id: number,
+  language: "id" | "en" = "id",
+): Promise<JuzData> => {
   try {
     // Fetch Arabic and Indonesian translation in parallel
     const [arabicResponse, indonesianResponse] = await Promise.all([
@@ -60,17 +95,26 @@ const fetchJuzDetail = async (id: number): Promise<JuzData> => {
       !arabicResponse.data.data?.ayahs ||
       !indonesianResponse.data.data?.ayahs
     ) {
-      throw new Error("Data ayat tidak ditemukan untuk Juz ini");
+      throw new Error("No ayahs found for this Juz");
     }
 
     // Merge data - combine Arabic and Indonesian text
     const arabicAyahs = arabicResponse.data.data.ayahs;
     const indonesianAyahs = indonesianResponse.data.data.ayahs;
 
-    const mergedAyahs = arabicAyahs.map((arabicAyah: any, index: number) => ({
+    let mergedAyahs = arabicAyahs.map((arabicAyah: any, index: number) => ({
       ...arabicAyah,
       textIndonesian: indonesianAyahs[index]?.text || "",
     }));
+
+    // If English is requested, fetch and merge English translations
+    if (language === "en") {
+      const englishTranslations = await fetchEnglishTranslationForJuz(id);
+      mergedAyahs = mergedAyahs.map((ayah) => ({
+        ...ayah,
+        textEnglish: englishTranslations[ayah.number] || ayah.textIndonesian,
+      }));
+    }
 
     return {
       ...arabicResponse.data.data,
@@ -79,24 +123,31 @@ const fetchJuzDetail = async (id: number): Promise<JuzData> => {
   } catch (error) {
     console.error("Error fetching Juz:", error);
     if (axios.isAxiosError(error)) {
-      throw new Error(`Gagal menyambung ke server: ${error.message}`);
+      throw new Error(`Failed to connect to server: ${error.message}`);
     }
-    throw new Error("Gagal menyambung ke server. Periksa koneksi internet.");
+    throw new Error(
+      "Failed to connect to server. Check your internet connection.",
+    );
   }
 };
 
 const JuzDetail = () => {
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, "JuzDetail">>();
   const { juzId } = route.params;
+
+  // Detect language - 'en' for English, 'id' for Indonesian
+  const language = i18n.language?.includes("id") ? "id" : "en";
+  console.log("Juz language detected:", language);
 
   // Store
   const { addBookmark, removeBookmark, isBookmarked } = useAppStore();
 
   // Audio state
+
   const [sound, setSound] = React.useState<Audio.Sound | null>(null);
   const [playingAyat, setPlayingAyat] = React.useState<number | null>(null);
-
   const {
     data: juz,
     isLoading,
@@ -104,8 +155,8 @@ const JuzDetail = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["juz", juzId],
-    queryFn: () => fetchJuzDetail(juzId),
+    queryKey: ["juz", juzId, language],
+    queryFn: () => fetchJuzDetail(juzId, language),
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     enabled: !!juzId,
@@ -129,15 +180,19 @@ const JuzDetail = () => {
       setPlayingAyat(ayatNumber);
     } catch (error) {
       console.error("Error playing audio:", error);
-      Alert.alert("Error", "Tidak dapat memutar audio");
+      Alert.alert(t("Error"), t("Could not play audio"));
     }
   };
 
   // Share function
   const onShare = async (item: Ayah) => {
     try {
+      const translation =
+        language === "en"
+          ? item.textEnglish || item.textIndonesian
+          : item.textIndonesian;
       await Share.share({
-        message: `${item.text}\n\n${item.textIndonesian}\n\nFrom Surah ${item.surah?.englishName || "Surah"} - Juz ${juzId}`,
+        message: `${item.text}\n\n${translation}\n\n${t("From")} ${item.surah?.englishName || t("Surah")} - ${t("Juz")} ${juzId}`,
       });
     } catch (error) {
       console.error("Error sharing:", error);
@@ -153,10 +208,10 @@ const JuzDetail = () => {
       addBookmark({
         surahId: surahNumber,
         nomorAyat: item.numberInSurah,
-        surahName: item.surah?.englishName || "Surah",
+        surahName: item.surah?.englishName || t("Surah"),
         ayahText: item.text,
       });
-      Alert.alert("Success", "Ayah ditambahkan ke bookmark");
+      Alert.alert(t("Success"), t("Ayah added to bookmarks"));
     }
   };
 
@@ -199,14 +254,18 @@ const JuzDetail = () => {
 
         {/* Display surah name */}
         <Text style={styles.surahTag}>
-          {item.surah?.englishName || "Surah"}
+          {item.surah?.englishName || t("Surah")}
         </Text>
 
         {/* Arabic text */}
         <Text style={styles.arabicText}>{item.text}</Text>
 
-        {/* Indonesian translation */}
-        <Text style={styles.translationText}>{item.textIndonesian}</Text>
+        {/* Translation - Indonesian or English based on language */}
+        <Text style={styles.translationText}>
+          {language === "en"
+            ? item.textEnglish || item.textIndonesian
+            : item.textIndonesian}
+        </Text>
       </View>
     );
   };
@@ -225,7 +284,9 @@ const JuzDetail = () => {
       return (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          <Text style={styles.infoText}>Memuat Juz {juzId}...</Text>
+          <Text style={styles.infoText}>
+            {t("Loading Juz")} {juzId}...
+          </Text>
         </View>
       );
     }
@@ -238,7 +299,7 @@ const JuzDetail = () => {
             style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Text style={styles.buttonText}>Coba Lagi</Text>
+            <Text style={styles.buttonText}>{t("Retry")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -248,13 +309,13 @@ const JuzDetail = () => {
       return (
         <View style={styles.center}>
           <Text style={styles.errorText}>
-            Tidak ada data ayat untuk Juz {juzId}
+            {t("No ayahs data for Juz")} {juzId}
           </Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Text style={styles.buttonText}>Coba Lagi</Text>
+            <Text style={styles.buttonText}>{t("Retry")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -268,7 +329,9 @@ const JuzDetail = () => {
         initialNumToRender={10}
         ListHeaderComponent={
           <View style={styles.bannerCard}>
-            <Text style={styles.bannerTitle}>Juz {juzId}</Text>
+            <Text style={styles.bannerTitle}>
+              {t("Juz")} {juzId}
+            </Text>
             <View style={styles.divider} />
             <AnimatedQuran />
           </View>
@@ -284,7 +347,9 @@ const JuzDetail = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft color={SECONDARY_COLOR} size={28} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>Juz {juzId}</Text>
+        <Text style={styles.navTitle}>
+          {t("Juz")} {juzId}
+        </Text>
         <Search color={SECONDARY_COLOR} size={28} />
       </View>
 

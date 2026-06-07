@@ -14,11 +14,13 @@ import {
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../store/useAppStore";
 import { Settings, Bell, Clock } from "lucide-react-native";
 import MainTabNavigator from "../components/MainTabNavigator";
 
 const PrayerTimesScreen = () => {
+  const { t } = useTranslation();
   const {
     prayerTimes,
     setPrayerData,
@@ -50,7 +52,7 @@ const PrayerTimesScreen = () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setPrayerData(null, "Akses Lokasi Ditolak");
+        setPrayerData(null, t("Location Access Denied"));
         setIsLoading(false);
         return;
       }
@@ -87,7 +89,7 @@ const PrayerTimesScreen = () => {
         setPrayerData(json.data.timings, dynamicLocationName);
       }
     } catch (error) {
-      console.error("Gagal memuat data jadwal sholat:", error);
+      console.error(t("Failed to load prayer schedule:"), error);
     } finally {
       setIsLoading(false);
     }
@@ -119,8 +121,12 @@ const PrayerTimesScreen = () => {
         // Notifikasi Tepat Waktu Sholat
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `Waktunya Sholat ${key}`,
-            body: `Mari tunaikan ibadah sholat ${key} untuk wilayah ${locationName}.`,
+            title: t("Time for Prayer") + ` ${key}`,
+            body:
+              t("Let's perform the") +
+              ` ${key} ` +
+              t("prayer for") +
+              ` ${locationName}.`,
           },
           trigger: {
             type: SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -134,8 +140,11 @@ const PrayerTimesScreen = () => {
           if (beforeSeconds > 0) {
             await Notifications.scheduleNotificationAsync({
               content: {
-                title: `15 Menit Lagi Sholat ${key}`,
-                body: `Bersiap-siap, waktu sholat ${key} akan segera tiba.`,
+                title: t("15 Minutes until") + ` ${key}`,
+                body:
+                  t("Get ready, prayer time") +
+                  ` ${key} ` +
+                  t("will be here soon."),
               },
               trigger: {
                 type: SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -225,7 +234,7 @@ const PrayerTimesScreen = () => {
       const current = getCurrent();
       const next = current || getNext();
       if (!next) {
-        setCountdown("Selesai (Isya)");
+        setCountdown(t("Done") + " (Isha)");
         return;
       }
 
@@ -252,11 +261,11 @@ const PrayerTimesScreen = () => {
           const m = Math.floor((diff % 3600000) / 60000);
           const s = Math.floor((diff % 60000) / 1000);
           setCountdown(
-            `Sampai ${nextPrayerTime} (${h > 0 ? h + "j " : ""}${m}m ${s}s)`,
+            `${t("Until")} ${nextPrayerTime} (${h > 0 ? h + "h " : ""}${m}m ${s}s)`,
           );
         }
       } else if (next.isLast) {
-        setCountdown("Selesai untuk hari ini");
+        setCountdown(t("Done for today"));
       } else {
         const diff = next.time.getTime() - Date.now();
         const h = Math.floor(diff / 3600000);
@@ -275,14 +284,14 @@ const PrayerTimesScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* StatusBar Component - Menampilkan status bar dengan styling */}
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="#0B1535" 
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#0B1535"
         translucent={false}
       />
-      
+
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Prayer Times</Text>
+        <Text style={styles.headerTitle}>{t("Prayer Times")}</Text>
         <TouchableOpacity style={styles.iconButton} onPress={getPrayer}>
           {isLoading ? (
             <ActivityIndicator color="white" size="small" />
@@ -299,8 +308,8 @@ const PrayerTimesScreen = () => {
             <Clock color="white" size={20} opacity={0.7} />
             <Text style={styles.todayLabel}>
               {nextPrayer?.isCurrent
-                ? "Sedang Berlangsung"
-                : "Sholat Berikutnya"}
+                ? t("Currently Running")
+                : t("Next Prayer")}
             </Text>
           </View>
           <Text style={styles.mainTimeText}>{nextPrayer?.name || "---"}</Text>
@@ -314,7 +323,7 @@ const PrayerTimesScreen = () => {
               ? nextPrayer.isCurrent
                 ? countdown
                 : `-${countdown}`
-              : "Menunggu Data"}
+              : t("Waiting for Data")}
           </Text>
           <Text style={styles.locationText}>{locationName}</Text>
         </View>
@@ -356,10 +365,10 @@ const PrayerTimesScreen = () => {
                     ]}
                   >
                     {isActive
-                      ? "Sedang berlangsung"
+                      ? t("Currently running")
                       : showAsNext
-                        ? "Sholat berikutnya"
-                        : "Reminder aktif"}
+                        ? t("Next prayer")
+                        : t("Reminder active")}
                   </Text>
                 </View>
               </View>
@@ -377,10 +386,10 @@ const PrayerTimesScreen = () => {
 
         {/* Notification Settings Section */}
         <View style={styles.settingsSection}>
-          <Text style={styles.settingsTitle}>Notification Settings</Text>
+          <Text style={styles.settingsTitle}>{t("Notification Settings")}</Text>
 
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Prayer Reminders</Text>
+            <Text style={styles.settingLabel}>{t("Prayer Reminders")}</Text>
             <Switch
               value={isReminderActive}
               onValueChange={toggleReminder}
@@ -390,7 +399,9 @@ const PrayerTimesScreen = () => {
           </View>
 
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>15 min before notification</Text>
+            <Text style={styles.settingLabel}>
+              {t("15 min before notification")}
+            </Text>
             <Switch
               value={isPreNotificationActive}
               onValueChange={togglePreNotification}
@@ -406,10 +417,10 @@ const PrayerTimesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: "#0B1535",
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: "row",
