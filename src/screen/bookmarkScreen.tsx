@@ -1,285 +1,132 @@
 import React from "react";
+import { useState, useMemo } from "react";
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
-  Alert,
   StatusBar,
   Platform,
   ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import {
-  Folder,
-  PlusSquare,
-  ListFilter,
-  Bookmark,
-  Pin,
-  ChevronRight,
-} from "lucide-react-native";
 import { useAppStore } from "../store/useAppStore";
 import { useNavigation } from "@react-navigation/native";
-import Header from "./component/Header";
+import Header from "../components/Header";
 import BottomTabBar from "../components/MainTabNavigator";
-
-// Constants
-const PRIMARY_COLOR = "#A44AFF";
-const SECONDARY_COLOR = "#8D92A3";
-const TEXT_COLOR = "white";
-const BACKGROUND_COLOR = "#0B1535";
-const ITEM_BACKGROUND_COLOR = "rgba(26, 40, 68, 0.4)";
-const BORDER_COLOR = "rgba(42, 58, 90, 0.6)";
-const PIN_COLOR = "#FFD700";
-
-// Types
-type Collection = {
-  id: string;
-  name: string;
-  isPinned: boolean;
-  items?: any[];
-};
-
-type BookmarkItem = {
-  surahId: number;
-  nomorAyat: number;
-  surahName: string;
-  ayahText?: string;
-};
+import {
+  AddCollectionCard,
+  BookmarkItem,
+  CollectionItem,
+  BookmarkSectionHeader,
+  EmptyBookmarkState,
+  BookmarkSearchBar,
+} from "../components/bookmark";
+import { useBookmarkScreen } from "../hooks/useBookmarkScreen";
+import { useCollectionManagement } from "../hooks/useCollectionManagement";
+import { COLORS } from "../constants/colors";
 
 const BookmarkScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
+  const [searchQuery, setSearchQuery] = useState("");
+
   const {
     bookmarks,
-    collections,
-    removeBookmark,
-    deleteCollection,
-    pinCollection,
-    unpinCollection,
-    createCollection,
-  } = useAppStore();
+    pinnedCollections,
+    unpinnedCollections,
+    hasAnyContent,
+    handleBookmarkPress,
+    handleRemoveBookmark,
+    handleCollectionPress,
+  } = useBookmarkScreen();
+  const filteredBookmarks = useMemo(() => {
+    if (!searchQuery.trim()) return bookmarks;
+    const query = searchQuery.toLowerCase();
+    return bookmarks.filter(
+      (item) =>
+        item.surahName.toLowerCase().includes(query) ||
+        item.ayahText?.toLowerCase().includes(query),
+    );
+  }, [bookmarks, searchQuery]);
+  const filteredCollections = useMemo(() => {
+    if (!searchQuery.trim())
+      return { pinned: pinnedCollections, unpinned: unpinnedCollections };
+    const query = searchQuery.toLowerCase();
+    const filterFn = (c: any) => c.name.toLowerCase().includes(query);
+    return {
+      pinned: pinnedCollections.filter(filterFn),
+      unpinned: unpinnedCollections.filter(filterFn),
+    };
+  }, [pinnedCollections, unpinnedCollections, searchQuery]);
 
-  const pinnedCollections = collections.filter((c) => c.isPinned);
-  const unpinnedCollections = collections.filter((c) => !c.isPinned);
-
-  const handleAddCollection = () => {
-    if (Platform.OS === "android") {
-      Alert.alert(
-        t("Create Collection"),
-        t("Collection name will be auto generated."),
-        [
-          { text: t("Cancel"), style: "cancel" },
-          {
-            text: t("Create"),
-            onPress: () => {
-              const collectionName = `Collection ${collections.length + 1}`;
-              createCollection(collectionName);
-              Alert.alert(
-                t("Success"),
-                `${t("Collection")} "${collectionName}" ${t("created!")}`,
-              );
-            },
-          },
-        ],
-      );
-    } else {
-      Alert.prompt(
-        t("Create Collection"),
-        t("Enter folder name:"),
-        (text) => {
-          if (text?.trim()) {
-            createCollection(text);
-            Alert.alert(
-              t("Success"),
-              `${t("Collection")} "${text}" ${t("created!")}`,
-            );
-          }
-        },
-        "plain-text",
-      );
-    }
-  };
-
-  const handleLongPressCollection = (item: Collection) => {
-    Alert.alert(t("Manage Collection"), item.name, [
-      {
-        text: item.isPinned ? t("Unpin Collection") : t("Pin Collection"),
-        onPress: () =>
-          item.isPinned ? unpinCollection(item.id) : pinCollection(item.id),
-      },
-      {
-        text: t("Delete"),
-        style: "destructive",
-        onPress: () => {
-          Alert.alert(
-            t("Confirm Delete"),
-            t("Are you sure you want to delete this collection") +
-              ` "${item.name}"?`,
-            [
-              { text: t("Cancel"), style: "cancel" },
-              {
-                text: t("Delete"),
-                style: "destructive",
-                onPress: () => {
-                  deleteCollection(item.id);
-                  Alert.alert(t("Success"), t("Collection deleted"));
-                },
-              },
-            ],
-          );
-        },
-      },
-      { text: t("Cancel"), style: "cancel" },
-    ]);
-  };
-
-  const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
-    <TouchableOpacity
-      style={styles.bookmarkItem}
-      onPress={() =>
-        navigation.navigate("SurahDetail", {
-          surahId: item.surahId,
-          nomorAyat: item.nomorAyat,
-        })
-      }
-      activeOpacity={0.7}
-    >
-      <View style={styles.itemLeft}>
-        <View style={styles.textContainer}>
-          <View style={styles.row}>
-            <Text style={styles.surahName}>{item.surahName}</Text>
-            <Text style={styles.ayahNumber}>
-              {" "}
-              • {t("Ayah No")} {item.nomorAyat}
-            </Text>
-          </View>
-          <Text style={styles.arabicTextSmall} numberOfLines={2}>
-            {item.ayahText}
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity
-        onPress={() => removeBookmark(item.surahId, item.nomorAyat)}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Bookmark
-          color={PRIMARY_COLOR}
-          size={24}
-          fill={PRIMARY_COLOR}
-          strokeWidth={2}
-        />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  const renderCollectionItem = ({ item }: { item: Collection }) => (
-    <TouchableOpacity
-      style={styles.collectionItem}
-      onPress={() =>
-        navigation.navigate("CollectionDetail", {
-          collectionId: item.id,
-          collectionName: item.name,
-        })
-      }
-      onLongPress={() => handleLongPressCollection(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.itemLeft}>
-        <Folder color={PRIMARY_COLOR} size={28} />
-        <View style={styles.textContainer}>
-          <View style={styles.collectionHeader}>
-            <Text style={styles.collectionName}>{item.name}</Text>
-            {item.isPinned && (
-              <Pin
-                color={PIN_COLOR}
-                size={14}
-                fill={PIN_COLOR}
-                style={styles.pinIcon}
-              />
-            )}
-          </View>
-          <Text style={styles.itemCount}>
-            {item.items?.length || 0} {t("items")}
-          </Text>
-        </View>
-      </View>
-      <ChevronRight color={TEXT_COLOR} size={20} />
-    </TouchableOpacity>
-  );
+  const { handleCreateCollection, handleCollectionLongPress } =
+    useCollectionManagement();
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
         barStyle="light-content"
-        backgroundColor={BACKGROUND_COLOR}
+        backgroundColor={COLORS.BACKGROUND}
         translucent={false}
       />
 
       <Header title={t("Bookmarks")} />
+      <BookmarkSearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onClear={() => setSearchQuery("")}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <TouchableOpacity
-          style={styles.addSection}
-          onPress={handleAddCollection}
-          activeOpacity={0.7}
-        >
-          <View style={styles.itemLeft}>
-            <PlusSquare color={PRIMARY_COLOR} size={28} />
-            <Text style={styles.addText}>{t("Add new collection")}</Text>
-          </View>
-          <ListFilter color={TEXT_COLOR} size={24} />
-        </TouchableOpacity>
+        <AddCollectionCard onPress={handleCreateCollection} />
 
         {bookmarks.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>{t("Bookmarked Ayahs")}</Text>
+            <BookmarkSectionHeader title={t("Bookmarked Ayahs")} />
             {bookmarks.map((item) => (
-              <View key={`${item.surahId}-${item.nomorAyat}`}>
-                {renderBookmarkItem({ item })}
-              </View>
+              <BookmarkItem
+                key={`${item.surahId}-${item.nomorAyat}`}
+                item={item}
+                onPress={handleBookmarkPress}
+                onRemove={handleRemoveBookmark}
+              />
             ))}
           </View>
         )}
 
         {pinnedCollections.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>{t("Pinned Collections")}</Text>
+            <BookmarkSectionHeader title={t("Pinned Collections")} />
             {pinnedCollections.map((item) => (
-              <View key={item.id}>{renderCollectionItem({ item })}</View>
+              <CollectionItem
+                key={item.id}
+                item={item}
+                onPress={handleCollectionPress}
+                onLongPress={handleCollectionLongPress}
+              />
             ))}
           </View>
         )}
 
         {unpinnedCollections.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>{t("Collections")}</Text>
+            <BookmarkSectionHeader title={t("Collections")} />
             {unpinnedCollections.map((item) => (
-              <View key={item.id}>{renderCollectionItem({ item })}</View>
+              <CollectionItem
+                key={item.id}
+                item={item}
+                onPress={handleCollectionPress}
+                onLongPress={handleCollectionLongPress}
+              />
             ))}
           </View>
         )}
 
-        {bookmarks.length === 0 && collections.length === 0 && (
-          <View style={styles.emptyState}>
-            <Bookmark color={SECONDARY_COLOR} size={48} />
-            <Text style={styles.emptyStateText}>
-              {t("No bookmarks or collections yet")}
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={handleAddCollection}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.emptyStateButtonText}>
-                {t("Create Collection")}
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {!hasAnyContent && (
+          <EmptyBookmarkState onCreateCollection={handleCreateCollection} />
         )}
       </ScrollView>
 
@@ -291,131 +138,11 @@ const BookmarkScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND_COLOR,
+    backgroundColor: COLORS.BACKGROUND,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   scrollContent: {
     paddingBottom: 100,
-  },
-  addSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    marginTop: 10,
-    backgroundColor: "rgba(26, 40, 68, 0.3)",
-    marginHorizontal: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: "rgba(164, 74, 255, 0.3)",
-  },
-  itemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  textContainer: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  addText: {
-    color: TEXT_COLOR,
-    fontSize: 18,
-    fontWeight: "600",
-    marginLeft: 15,
-  },
-  sectionTitle: {
-    color: TEXT_COLOR,
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 20,
-    marginTop: 20,
-    marginBottom: 10,
-    letterSpacing: 0.3,
-  },
-  bookmarkItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(141, 146, 163, 0.3)",
-    backgroundColor: ITEM_BACKGROUND_COLOR,
-  },
-  surahName: {
-    color: TEXT_COLOR,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  ayahNumber: {
-    color: SECONDARY_COLOR,
-    fontSize: 14,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  arabicTextSmall: {
-    color: SECONDARY_COLOR,
-    fontSize: 12,
-    marginTop: 5,
-    lineHeight: 18,
-  },
-  collectionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 0.5,
-    borderBottomColor: BORDER_COLOR,
-    backgroundColor: "rgba(26, 40, 68, 0.3)",
-  },
-  collectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  collectionName: {
-    color: TEXT_COLOR,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  itemCount: {
-    color: SECONDARY_COLOR,
-    fontSize: 14,
-    marginTop: 2,
-  },
-  pinIcon: {
-    marginLeft: 8,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 60,
-  },
-  emptyStateText: {
-    color: SECONDARY_COLOR,
-    fontSize: 18,
-    marginTop: 16,
-    textAlign: "center",
-  },
-  emptyStateButton: {
-    backgroundColor: PRIMARY_COLOR,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  emptyStateButtonText: {
-    color: TEXT_COLOR,
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
 

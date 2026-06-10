@@ -4,9 +4,9 @@ import HomeScreen from "../screen/homeScreen";
 import PrayerTimeScreen from "../screen/prayerTimeScreen";
 import FastingScreen from "../screen/FastingScreen";
 import BookmarkScreen from "../screen/bookmarkScreen";
-import CollectionDetailScreen from "../screen/component/collectionDetailScreen";
-import SurahDetail from "../screen/component/surahDetail";
-import JuzDetail from "../screen/component/juzDetail";
+import CollectionDetailScreen from "../screen/Details/collectionDetailScreen";
+import SurahDetail from "../screen/Details/surahDetail";
+import JuzDetail from "../screen/Details/juzDetail";
 import SearchScreen from "../screen/searchScreen";
 
 // Constants
@@ -32,7 +32,6 @@ const SCREENS: Array<{
   component: React.ComponentType<any>;
 }> = [
   { name: "HomeScreen", component: HomeScreen },
-
   { name: "PrayerTimesScreen", component: PrayerTimeScreen },
   { name: "FastingScreen", component: FastingScreen },
   { name: "BookmarkScreen", component: BookmarkScreen },

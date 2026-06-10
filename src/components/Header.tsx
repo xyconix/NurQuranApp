@@ -2,15 +2,11 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Search, Menu } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { RootStackParamList } from "../../navigation/AppNavigator";
+import { RootStackParamList } from "../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-// Constants
-const TEXT_COLOR = "white";
-const ICON_SIZE = 28;
-const PADDING = 20;
+import { useTheme } from "../contexts/ThemeContext";
 
-// Types
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface HeaderProps {
@@ -19,21 +15,29 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigation = useNavigation<NavigationProp>();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+
   const handleSearchPress = () => {
     navigation.navigate("Search");
   };
 
   return (
-    <View style={styles.header}>
-      <Menu color={TEXT_COLOR} size={ICON_SIZE} />
-      <Text style={styles.headerTitle}>{t(title)}</Text>
+    <View style={[styles.header, { backgroundColor: colors.BACKGROUND }]}>
+      <Menu color={colors.TEXT} size={ICON_SIZE} />
+      <Text style={[styles.headerTitle, { color: colors.TEXT }]}>
+        {t(title)}
+      </Text>
       <TouchableOpacity onPress={handleSearchPress}>
-        <Search color={TEXT_COLOR} size={ICON_SIZE} />
+        <Search color={colors.TEXT} size={ICON_SIZE} />
       </TouchableOpacity>
     </View>
   );
 };
+
+const TEXT_COLOR = "white"; // Hapus atau ubah jadi dinamis
+const ICON_SIZE = 28;
+const PADDING = 20;
 
 const styles = StyleSheet.create({
   header: {
@@ -43,7 +47,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    color: TEXT_COLOR,
     fontSize: 20,
     fontWeight: "bold",
   },

@@ -1,4 +1,4 @@
-import { useAppStore } from "../../store/useAppStore";
+import { useAppStore } from "../store/useAppStore";
 import axios from "axios";
 
 export const preloadQuranData = async () => {

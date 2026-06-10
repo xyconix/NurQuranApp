@@ -5,18 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/1.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/3.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "plugins": [
-      "expo-location",
-      "expo-notifications",
-      "expo-localization"
-    ],
+    "plugins": ["expo-location", "expo-notifications", "expo-localization"],
     "ios": {
       "supportsTablet": true
     },
@@ -25,10 +21,7 @@
         "foregroundImage": "./assets/1.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ],
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.s3r3r.nurquran"

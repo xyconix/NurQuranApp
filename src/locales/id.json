@@ -162,5 +162,10 @@
   "Search Surah (example: Al-Fatihah)": "Cari Surah (contoh: Al-Fatihah)",
   "Found": "Ditemukan",
   "results": "hasil",
-  "Ayat": "Ayat"
+  "Ayat": "Ayat",
+  "No results found": "Tidak ada hasil ditemukan",
+  "Please try searching with different keywords": "Silakan coba mencari dengan kata kunci lain",
+  "Search": "Cari",
+  "Good Morning": "Selamat Pagi",
+  "Good Afternoon": "Selamat Siang"
 }
