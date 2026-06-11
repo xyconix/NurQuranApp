@@ -29,6 +29,6 @@ export const NOTIFICATION_SETTINGS = {
 
 export const API_CONFIG = {
   ALADHAN_BASE_URL: "https://api.aladhan.com/v1/timings",
-  DEFAULT_METHOD: 11, // Kemenag method for Indonesia
+  DEFAULT_METHOD: 3, // Kemenag method for Indonesia
   TIMEOUT: 10000,
 } as const;
