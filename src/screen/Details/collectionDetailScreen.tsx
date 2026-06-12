@@ -46,7 +46,7 @@ const CollectionDetailScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{t(\"Collection not found\")}</Text>
+          <Text style={styles.errorText}>{t("collectionNotFound")}</Text>
         </View>
         <BottomTabBar active="bookmark" />
       </SafeAreaView>
