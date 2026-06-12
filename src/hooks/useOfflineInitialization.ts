@@ -38,7 +38,9 @@ export const useOfflineInitialization = () => {
         setIsConnected(netState.isConnected ?? false);
         setOfflineMode(!(netState.isConnected ?? false));
 
-        console.log(`🌐 Network Status: ${netState.isConnected ? "Online" : "Offline"}`);
+        console.log(
+          `🌐 Network Status: ${netState.isConnected ? "Online" : "Offline"}`,
+        );
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Unknown error occurred";

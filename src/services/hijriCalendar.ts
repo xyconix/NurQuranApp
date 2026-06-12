@@ -30,7 +30,7 @@ class HijriCalendarService {
         Math.floor(y / 4) -
         Math.floor(y / 100) +
         Math.floor(y / 400) -
-        32045
+        32045,
     );
 
     return jdn;
@@ -46,7 +46,7 @@ class HijriCalendarService {
     const a = Math.floor((r + 1) / 325.2425);
     const w = Math.floor(325.2425 * a);
     const q1 = Math.floor((r - w) / 30.44);
-    const q2 = Math.floor((r - w) % 30.44 / 29.5);
+    const q2 = Math.floor(((r - w) % 30.44) / 29.5);
 
     const year = 30 * q + 30 * a + q1;
     const month = q2 + 1;
@@ -66,7 +66,11 @@ class HijriCalendarService {
   /**
    * Convert Hijri date to Gregorian
    */
-  hijriToGregorian(hijriYear: number, hijriMonth: number, hijriDay: number): Date {
+  hijriToGregorian(
+    hijriYear: number,
+    hijriMonth: number,
+    hijriDay: number,
+  ): Date {
     const n =
       hijriDay +
       Math.ceil(29.5001 * (hijriMonth - 1)) +
@@ -77,18 +81,17 @@ class HijriCalendarService {
 
     const a = Math.floor((n + 32044) / 146097);
     const b = Math.floor(((n + 32044) % 146097) / 36524);
-    const c = Math.floor(
-      (((n + 32044) % 146097) % 36524 + 1) / 365.2425
-    );
+    const c = Math.floor(((((n + 32044) % 146097) % 36524) + 1) / 365.2425);
     const d = Math.floor(
-      (365.2425 * (a * 146097 + b * 36524 + c * 365.2425 + 0.5)) / 1
+      (365.2425 * (a * 146097 + b * 36524 + c * 365.2425 + 0.5)) / 1,
     );
     const e = Math.floor((n - d) / 30.6);
     const day = n - d - Math.floor(30.6 * e) + 1;
-    const month =
-      e < 14 ? e - 1 : e - 13;
+    const month = e < 14 ? e - 1 : e - 13;
     const year =
-      month > 2 ? a * 400 + b * 100 + c * 4 - 4800 : a * 400 + b * 100 + c * 4 - 4801;
+      month > 2
+        ? a * 400 + b * 100 + c * 4 - 4800
+        : a * 400 + b * 100 + c * 4 - 4801;
 
     return new Date(year, month - 1, day);
   }
@@ -157,7 +160,7 @@ class HijriCalendarService {
    */
   getHijriDateRange(
     gregorianYear: number,
-    gregorianMonth: number
+    gregorianMonth: number,
   ): { start: HijriDate; end: HijriDate } {
     const firstDay = new Date(gregorianYear, gregorianMonth, 1);
     const lastDay = new Date(gregorianYear, gregorianMonth + 1, 0);

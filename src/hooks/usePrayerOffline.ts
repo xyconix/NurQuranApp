@@ -12,14 +12,14 @@ export const usePrayerOffline = () => {
       times: PrayerTimes,
       location: string,
       latitude: number,
-      longitude: number
+      longitude: number,
     ) => {
       try {
         await prayerCache.cachePrayerTimes(
           times,
           location,
           latitude,
-          longitude
+          longitude,
         );
         setCachedData(times);
         setIsCached(true);
@@ -28,7 +28,7 @@ export const usePrayerOffline = () => {
         console.error("Error caching prayer times:", error);
       }
     },
-    []
+    [],
   );
 
   const getCachedPrayerData = useCallback(async (location: string) => {

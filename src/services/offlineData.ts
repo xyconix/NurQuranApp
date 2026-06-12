@@ -65,10 +65,7 @@ class OfflineDataService {
 
   private async saveInitializationTime(): Promise<void> {
     try {
-      await AsyncStorage.setItem(
-        "offline_init_time",
-        new Date().toISOString()
-      );
+      await AsyncStorage.setItem("offline_init_time", new Date().toISOString());
     } catch (error) {
       console.error("Error saving initialization time:", error);
     }

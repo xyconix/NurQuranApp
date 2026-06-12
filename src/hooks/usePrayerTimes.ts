@@ -27,10 +27,7 @@ export const usePrayerTimes = () => {
         return;
       }
 
-      setLocation(
-        locationData.latitude,
-        locationData.longitude
-      );
+      setLocation(locationData.latitude, locationData.longitude);
 
       const url =
         `${API_CONFIG.ALADHAN_BASE_URL}` +
@@ -52,13 +49,10 @@ export const usePrayerTimes = () => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(
-            `HTTP Error: ${response.status}`
-          );
+          throw new Error(`HTTP Error: ${response.status}`);
         }
 
-        const json: PrayerTimesResponse =
-          await response.json();
+        const json: PrayerTimesResponse = await response.json();
 
         if (json.code === 200 && json.data) {
           // Cache the new data
@@ -66,35 +60,24 @@ export const usePrayerTimes = () => {
             json.data.timings,
             locationData.name,
             locationData.latitude,
-            locationData.longitude
+            locationData.longitude,
           );
 
-          setPrayerData(
-            json.data.timings,
-            locationData.name
-          );
+          setPrayerData(json.data.timings, locationData.name);
         } else {
           throw new Error("Invalid response from API");
         }
       } catch (err) {
         clearTimeout(timeoutId);
 
-        if (
-          err instanceof Error &&
-          err.name === "AbortError"
-        ) {
-          throw new Error(
-            "Request timeout. Please try again."
-          );
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new Error("Request timeout. Please try again.");
         }
 
         throw err;
       }
     } catch (error) {
-      console.error(
-        "Failed to load prayer schedule:",
-        error
-      );
+      console.error("Failed to load prayer schedule:", error);
 
       // Try to load from cache as fallback
       try {
@@ -118,16 +101,20 @@ export const usePrayerTimes = () => {
       }
 
       const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to load prayer times";
+        error instanceof Error ? error.message : "Failed to load prayer times";
 
       setError(message);
       setPrayerData(null, "Error loading data");
     } finally {
       setIsLoading(false);
     }
-  }, [getCurrentLocation, setPrayerData, setLocation, cachePrayerData, getCachedPrayerData]);
+  }, [
+    getCurrentLocation,
+    setPrayerData,
+    setLocation,
+    cachePrayerData,
+    getCachedPrayerData,
+  ]);
 
   return {
     fetchPrayerTimes,

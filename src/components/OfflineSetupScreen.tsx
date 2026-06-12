@@ -52,7 +52,10 @@ export const OfflineSetupScreen: React.FC<OfflineSetupScreenProps> = ({
         }
       } catch (error) {
         console.error("Failed to initialize offline mode:", error);
-        setStatus("Error: " + (error instanceof Error ? error.message : "Unknown error"));
+        setStatus(
+          "Error: " +
+            (error instanceof Error ? error.message : "Unknown error"),
+        );
         setProgress(0);
 
         // Retry after delay

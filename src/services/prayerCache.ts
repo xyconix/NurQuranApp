@@ -18,7 +18,7 @@ class PrayerCacheService {
     times: PrayerTimes,
     location: string,
     latitude: number,
-    longitude: number
+    longitude: number,
   ): Promise<void> {
     try {
       const cacheData: CachedPrayerData = {
@@ -27,14 +27,12 @@ class PrayerCacheService {
         latitude,
         longitude,
         timestamp: Date.now(),
-        expiresAt:
-          Date.now() +
-          PRAYER_CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+        expiresAt: Date.now() + PRAYER_CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
       };
 
       await AsyncStorage.setItem(
         `${PRAYER_CACHE_KEY}_${location}`,
-        JSON.stringify(cacheData)
+        JSON.stringify(cacheData),
       );
 
       console.log(`✅ Prayer times cached for ${location}`);
@@ -44,11 +42,11 @@ class PrayerCacheService {
   }
 
   async getCachedPrayerTimes(
-    location: string
+    location: string,
   ): Promise<CachedPrayerData | null> {
     try {
       const cached = await AsyncStorage.getItem(
-        `${PRAYER_CACHE_KEY}_${location}`
+        `${PRAYER_CACHE_KEY}_${location}`,
       );
 
       if (!cached) {
@@ -90,7 +88,7 @@ class PrayerCacheService {
         // Clear all prayer caches
         const keys = await AsyncStorage.getAllKeys();
         const prayerKeys = keys.filter((key) =>
-          key.startsWith(PRAYER_CACHE_KEY)
+          key.startsWith(PRAYER_CACHE_KEY),
         );
         await AsyncStorage.multiRemove(prayerKeys);
       }

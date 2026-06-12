@@ -37,7 +37,7 @@ interface AppStore {
   isOfflineMode: boolean;
   quranDBReady: boolean;
   lastSyncTime: number | null;
-  
+
   setOfflineMode: (enabled: boolean) => void;
   setQuranDBReady: (ready: boolean) => void;
   setLastSyncTime: (time: number) => void;
@@ -62,7 +62,7 @@ interface AppStore {
   deleteCollection: (id: string) => void;
   pinCollection: (id: string) => void;
   unpinCollection: (id: string) => void;
-    // ===== LOCATION (GLOBAL) =====
+  // ===== LOCATION (GLOBAL) =====
   location: {
     latitude: number;
     longitude: number;
@@ -74,13 +74,13 @@ interface AppStore {
   removeAyatFromCollection: (
     id: string,
     surahId: number,
-    nomorAyat: number
+    nomorAyat: number,
   ) => void;
 
   isAyatInCollection: (
     id: string,
     surahId: number,
-    nomorAyat: number
+    nomorAyat: number,
   ) => boolean;
 
   setLastRead: (lastRead: LastRead) => void;
@@ -122,7 +122,7 @@ export const useAppStore = create<AppStore>()(
       allSurahs: [],
       isDataLoaded: false,
 
-            /* ===== LOCATION ===== */
+      /* ===== LOCATION ===== */
       location: null,
 
       setLocation: (lat, lon) =>
@@ -149,27 +149,24 @@ export const useAppStore = create<AppStore>()(
             state.bookmarks.some(
               (b) =>
                 b.surahId === newItem.surahId &&
-                b.nomorAyat === newItem.nomorAyat
+                b.nomorAyat === newItem.nomorAyat,
             )
-          ) return state;
+          )
+            return state;
 
           return { bookmarks: [...state.bookmarks, newItem] };
         }),
-        
 
       removeBookmark: (surahId, nomorAyat) =>
         set((state) => ({
           bookmarks: state.bookmarks.filter(
-            (b) =>
-              !(b.surahId === surahId && b.nomorAyat === nomorAyat)
+            (b) => !(b.surahId === surahId && b.nomorAyat === nomorAyat),
           ),
         })),
 
       isBookmarked: (surahId, nomorAyat) =>
         get().bookmarks.some(
-          (b) =>
-            b.surahId === surahId &&
-            b.nomorAyat === nomorAyat
+          (b) => b.surahId === surahId && b.nomorAyat === nomorAyat,
         ),
 
       createCollection: (name) => {
@@ -197,14 +194,14 @@ export const useAppStore = create<AppStore>()(
       pinCollection: (id) =>
         set((state) => ({
           collections: state.collections.map((c) =>
-            c.id === id ? { ...c, isPinned: true } : c
+            c.id === id ? { ...c, isPinned: true } : c,
           ),
         })),
 
       unpinCollection: (id) =>
         set((state) => ({
           collections: state.collections.map((c) =>
-            c.id === id ? { ...c, isPinned: false } : c
+            c.id === id ? { ...c, isPinned: false } : c,
           ),
         })),
 
@@ -217,9 +214,10 @@ export const useAppStore = create<AppStore>()(
               c.items.some(
                 (i) =>
                   i.surahId === bookmark.surahId &&
-                  i.nomorAyat === bookmark.nomorAyat
+                  i.nomorAyat === bookmark.nomorAyat,
               )
-            ) return c;
+            )
+              return c;
 
             return { ...c, items: [...c.items, bookmark] };
           }),
@@ -233,10 +231,10 @@ export const useAppStore = create<AppStore>()(
                   ...c,
                   items: c.items.filter(
                     (i) =>
-                      !(i.surahId === surahId && i.nomorAyat === nomorAyat)
+                      !(i.surahId === surahId && i.nomorAyat === nomorAyat),
                   ),
                 }
-              : c
+              : c,
           ),
         })),
 
@@ -244,9 +242,7 @@ export const useAppStore = create<AppStore>()(
         const c = get().collections.find((c) => c.id === id);
         return (
           c?.items.some(
-            (i) =>
-              i.surahId === surahId &&
-              i.nomorAyat === nomorAyat
+            (i) => i.surahId === surahId && i.nomorAyat === nomorAyat,
           ) ?? false
         );
       },
@@ -275,6 +271,6 @@ export const useAppStore = create<AppStore>()(
     {
       name: "app-storage", // 🔥 satu storage saja
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 );
